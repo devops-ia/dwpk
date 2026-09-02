@@ -1,0 +1,1637 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Development Workspace Platform for Kubernetes">
+      
+      
+      
+        <link rel="canonical" href="https://devops-ia.github.io/dwpk/1.0/ADMINISTRATION/">
+      
+      
+        <link rel="prev" href="../INSTALLATION/">
+      
+      
+        <link rel="next" href="../USER_GUIDE/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Administration - dwpk</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#administration" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="dwpk" class="md-header__button md-logo" aria-label="dwpk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            dwpk
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Administration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/devops-ia/dwpk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    devops-ia/dwpk
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../QUICKSTART/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ARCHITECTURE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../INSTALLATION/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Administration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../USER_GUIDE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  User guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../GATEWAY_AWS/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Gateway on AWS
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../API_REFERENCE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ENVIRONMENT_VARIABLES/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Environment variables
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../TROUBLESHOOTING/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="dwpk" class="md-nav__button md-logo" aria-label="dwpk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    dwpk
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/devops-ia/dwpk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    devops-ia/dwpk
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../QUICKSTART/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../INSTALLATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#admin-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manage-catalog-entries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manage catalog entries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sync-the-catalog-from-a-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sync the catalog from a registry
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provision-userspaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provision UserSpaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rbac-that-ships-with-the-repo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RBAC that ships with the repo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Roles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#disabling-a-user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Disabling a user
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quota-and-persistence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quota and persistence
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quota and persistence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#namespace-quota" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namespace quota
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspace-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspace storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configmaps-and-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigMaps and Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observability-toggles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observability toggles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#admin-ui-screens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin UI screens
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#session-and-token-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session and token lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#day-2-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Day-2 operations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Day-2 operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#review-readiness-and-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review readiness and failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rotate-oauth-client-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotate OAuth client secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rotate-the-gateway-host-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotate the gateway host key
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-and-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backup and recovery
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../USER_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GATEWAY_AWS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway on AWS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ENVIRONMENT_VARIABLES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment variables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#admin-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manage-catalog-entries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manage catalog entries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sync-the-catalog-from-a-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sync the catalog from a registry
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#provision-userspaces" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Provision UserSpaces
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rbac-that-ships-with-the-repo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RBAC that ships with the repo
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roles
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Roles">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#disabling-a-user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Disabling a user
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quota-and-persistence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quota and persistence
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Quota and persistence">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#namespace-quota" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Namespace quota
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspace-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspace storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#configmaps-and-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ConfigMaps and Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#observability-toggles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Observability toggles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#admin-ui-screens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin UI screens
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#session-and-token-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session and token lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#day-2-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Day-2 operations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Day-2 operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#review-readiness-and-failures" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Review readiness and failures
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rotate-oauth-client-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotate OAuth client secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rotate-the-gateway-host-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotate the gateway host key
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#backup-and-recovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backup and recovery
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="administration">Administration<a class="headerlink" href="#administration" title="Permanent link">&para;</a></h1>
+<h2 id="admin-model">Admin model<a class="headerlink" href="#admin-model" title="Permanent link">&para;</a></h2>
+<p>A cluster admin owns three jobs in dwpk:</p>
+<ul>
+<li>Curate catalog entries through <code>WorkspaceImage</code></li>
+<li>Provision one <code>UserSpace</code> per person, with the quota it may spend</li>
+</ul>
+<p>Users do not self-provision namespaces in the current codebase. Login succeeds only when the provider email matches an existing <code>UserSpace.spec.owner</code>.</p>
+<h2 id="manage-catalog-entries">Manage catalog entries<a class="headerlink" href="#manage-catalog-entries" title="Permanent link">&para;</a></h2>
+<p><code>WorkspaceImage</code> is cluster scoped. Users read it, but do not create it.</p>
+<p>A catalog entry controls:</p>
+<ul>
+<li>Marketplace title and description</li>
+<li>Container image reference and pull policy</li>
+<li>Working directory, pod UID, and whether root is permitted</li>
+<li>Placement rules</li>
+<li>Deprecated state, either immediately or from a date</li>
+</ul>
+<p>It does not control size. Resources are chosen per workspace and checked against
+the owner's quota when the workspace is admitted.</p>
+<p>Start from the sample in <code>config/samples/dwpk_v1alpha1_workspaceimage.yaml</code>.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>config/samples/dwpk_v1alpha1_workspaceimage.yaml
+kubectl<span class="w"> </span>get<span class="w"> </span>workspaceimages
+</code></pre></div>
+<p>Good operating practice:</p>
+<ul>
+<li>Keep <code>metadata.name</code> stable. Users reference it through <code>Workspace.spec.imageRef.name</code>.</li>
+<li>Retire an entry with <code>spec.deprecateAt</code> rather than <code>spec.deprecated</code>. Until that moment the entry works normally and the catalog shows how long is left; after it, the entry behaves as deprecated. <code>spec.deprecated=true</code> is the immediate form.</li>
+<li>A deprecated entry keeps its existing workspaces running. It only stops being offered for new ones, and the UI still shows it when the user asks for deprecated entries.</li>
+<li><code>spec.allowRoot</code> lets workspaces from that entry run as uid 0. Only an administrator can set it, and it is the one field worth a second look before saving.</li>
+<li>Test placement rules. <code>spec.placement.nodeSelector</code> and <code>spec.placement.tolerations</code> are passed straight into the workspace pod spec.</li>
+<li>A private image needs <code>spec.imagePullSecretRef</code> naming a pull Secret. dwpk replicates that Secret from the manager's own namespace into every user namespace - see "Sync the catalog from a registry" below for how the Secret gets there when it comes from a synced registry, or label one yourself with <code>dwpk.devops-ia.io/pull-secret=true</code> for a hand-added entry.</li>
+</ul>
+<h2 id="sync-the-catalog-from-a-registry">Sync the catalog from a registry<a class="headerlink" href="#sync-the-catalog-from-a-registry" title="Permanent link">&para;</a></h2>
+<p>Under Administration → Catalog, a <strong>Registries</strong> section configures <code>ImageRegistry</code> objects that
+poll an external registry (AWS ECR today) and keep matching WorkspaceImages in sync automatically,
+instead of adding entries by hand.</p>
+<p>Each registry configures:</p>
+<ul>
+<li><strong>Where</strong>: AWS region, account ID (defaults to the credentials' own account), and an optional
+  cross-account role ARN. Authentication is the AWS SDK's default credential chain - IRSA, EKS Pod
+  Identity, or an instance profile; no AWS key ever needs to be stored in the cluster.</li>
+<li><strong>What to sync</strong>: include/exclude RE2 patterns matched against repository names (one per line;
+  exclude wins when both match), and a tag policy - either the newest tag by push time, or every
+  tag matching a set of patterns, capped at a configurable number per repository.</li>
+<li><strong>How often</strong>: a sync interval in seconds (minimum 60), plus a <strong>Force sync</strong> button per registry
+  to retrigger one immediately.</li>
+<li><strong>Cleanup</strong>: an opt-in "delete on disappearance" toggle. Off by default, so a registry that is
+  briefly unreachable does not delete catalog entries somebody may be using.</li>
+<li><strong>Private images</strong>: an optional pull-secret name, stamped onto every entry the registry syncs.</li>
+</ul>
+<p>Every synced entry shows which registry produced it and is labelled
+<code>dwpk.devops-ia.io/image-registry=&lt;registry name&gt;</code>. Editing a synced entry's fields by hand is
+possible but pointless - the next sync overwrites them, and the admin screen says so.</p>
+<p>Deleting an <code>ImageRegistry</code> deletes every WorkspaceImage it synced (<code>ownerReferences</code>); workspaces
+already running one of those images keep running.</p>
+<h2 id="provision-userspaces">Provision UserSpaces<a class="headerlink" href="#provision-userspaces" title="Permanent link">&para;</a></h2>
+<p>A <code>UserSpace</code> creates the tenant boundary for one person.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>config/samples/dwpk_v1alpha1_userspace.yaml
+kubectl<span class="w"> </span>get<span class="w"> </span>userspaces
+</code></pre></div>
+<p>The controller derives the namespace as <code>dwpk-&lt;userspace-name&gt;</code> and writes that value into <code>status.namespace</code>.</p>
+<p>Each <code>UserSpace</code> currently provisions:</p>
+<ul>
+<li>Namespace</li>
+<li>ResourceQuota</li>
+<li>LimitRange</li>
+<li>NetworkPolicy</li>
+<li>Three ServiceAccounts: <code>workspace</code> (the pod's own identity), <code>session</code> (the UI's per-request
+  full-access token), and <code>session-readonly</code> (read-scoped API tokens)</li>
+<li>Per-user namespaced Roles and RoleBindings, one pair for full access and one for read-only</li>
+<li>Per-user ClusterRole and ClusterRoleBinding for cluster-scoped reads</li>
+</ul>
+<h2 id="rbac-that-ships-with-the-repo">RBAC that ships with the repo<a class="headerlink" href="#rbac-that-ships-with-the-repo" title="Permanent link">&para;</a></h2>
+<p>Helper ClusterRoles in <code>config/rbac/</code>:</p>
+<ul>
+<li><code>workspace-admin-role</code></li>
+<li><code>workspace-editor-role</code></li>
+<li><code>workspace-viewer-role</code></li>
+<li><code>userspace-admin-role</code></li>
+<li><code>userspace-editor-role</code></li>
+<li><code>userspace-viewer-role</code></li>
+<li><code>workspaceimage-admin-role</code></li>
+<li><code>workspaceimage-editor-role</code></li>
+<li><code>workspaceimage-viewer-role</code></li>
+<li><code>platformconfig-admin-role</code></li>
+<li><code>workspace-volume-admin-role</code></li>
+</ul>
+<p>The <code>-editor-role</code> and <code>-viewer-role</code> variants are not used by dwpk itself, as
+<code>config/rbac/kustomization.yaml</code> says. The five <code>-admin-role</code> ClusterRoles are:
+the manager binds them to every <code>UserSpace</code> whose role is <code>admin</code>, which is what
+<code>--admin-cluster-roles</code> lists.</p>
+<p>That binding is what authorizes an administrator's own token, and the UI talks
+to the API server as the signed-in person rather than as itself. <strong>So any admin
+screen that touches a resource not already covered here needs a new role adding
+to this list, <code>config/rbac/kustomization.yaml</code>, the chart, and the
+<code>dwpk.adminClusterRoles</code> helper - otherwise every save or delete is refused at
+runtime, and no unit test will catch it.</strong> Two screens have already been caught
+this way: editing <code>PlatformConfig</code> from Administration → Global needs
+<code>platformconfig-admin-role</code>, and deleting another person's home volume needs
+<code>workspace-volume-admin-role</code>.</p>
+<p><code>workspace-volume-admin-role</code> deliberately grants no <code>create</code>. Claims are made
+by the workspace StatefulSet's <code>volumeClaimTemplate</code>; an administrator needs to
+remove a departed user's storage, never to make any.</p>
+<p>Per-user RBAC created by the <code>UserSpace</code> reconciler:</p>
+<ul>
+<li>Role <code>dwpk-workspace-user</code> in the user's namespace, full CRUD on <code>Workspace</code> plus pod/log/event reads</li>
+<li>RoleBinding <code>dwpk-owner</code>, binding the human owner's OIDC <code>User</code> and the <code>session</code> ServiceAccount to that Role</li>
+<li>Role <code>dwpk-workspace-reader</code>, the same shape as <code>dwpk-workspace-user</code> minus every write verb</li>
+<li>RoleBinding <code>dwpk-reader</code>, binding the <code>session-readonly</code> ServiceAccount to that Role</li>
+<li>RoleBinding <code>dwpk-workspace-edit</code>, binding the <code>workspace</code> ServiceAccount (the pod's own identity) to the built-in <code>edit</code> ClusterRole inside that namespace</li>
+<li>ClusterRole <code>dwpk-userspace-&lt;userspace-name&gt;</code></li>
+<li>ClusterRoleBinding <code>dwpk-userspace-&lt;userspace-name&gt;</code>, binding the owner's <code>User</code>, <code>session</code>, and <code>session-readonly</code></li>
+</ul>
+<p>That ClusterRole is narrow by design. It grants <code>get</code>, <code>watch</code>, and <code>patch</code> on one <code>UserSpace</code> via <code>resourceNames</code> (<code>patch</code> only lets a person save their own SSH keys - the validator refuses any other field), plus catalog reads and the <code>use</code> verb on <code>WorkspaceImage</code>.</p>
+<h2 id="roles">Roles<a class="headerlink" href="#roles" title="Permanent link">&para;</a></h2>
+<p><code>UserSpace.spec.role</code> takes two values:</p>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Reach</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user</code> (default)</td>
+<td>Their own workspaces, in their own namespace</td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td>The whole platform</td>
+</tr>
+</tbody>
+</table>
+<p>An <code>admin</code> is granted the platform admin ClusterRoles by the <code>UserSpace</code>
+reconciler, as ClusterRoleBindings against their session ServiceAccount.
+Demoting them removes those bindings - garbage collection alone would not, since
+it only fires when the <code>UserSpace</code> itself is deleted.</p>
+<p><strong>Only an admin may grant the <code>admin</code> role.</strong> A validating webhook checks the
+requester with a <code>SubjectAccessReview</code> before allowing it. Without that check
+the role field would be a privilege escalation: anyone able to edit a
+<code>UserSpace</code>, including their own, could promote themselves.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>patch<span class="w"> </span>userspace<span class="w"> </span>alice<span class="w"> </span>--type<span class="o">=</span>merge<span class="w"> </span>-p<span class="w"> </span><span class="s1">'{"spec":{"role":"admin"}}'</span>
+</code></pre></div>
+<p>There is no middle tier. A group-of-users layer existed and was removed: it
+decided catalog visibility and gave a manager reach into other people's
+namespaces, and both turned out to be RBAC the cluster already expresses more
+directly.</p>
+<h3 id="disabling-a-user">Disabling a user<a class="headerlink" href="#disabling-a-user" title="Permanent link">&para;</a></h3>
+<p><code>spec.disabled</code> blocks login without deleting anything:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>patch<span class="w"> </span>userspace<span class="w"> </span>alice<span class="w"> </span>--type<span class="o">=</span>merge<span class="w"> </span>-p<span class="w"> </span><span class="s1">'{"spec":{"disabled":true}}'</span>
+</code></pre></div>
+<p>Their namespace, workspaces and volumes are untouched, and both login paths -
+OAuth2 and local - are refused while the flag is set. Use it for someone on
+extended leave or an account under investigation, where deleting the <code>UserSpace</code>
+would take the data with it.</p>
+<h2 id="quota-and-persistence">Quota and persistence<a class="headerlink" href="#quota-and-persistence" title="Permanent link">&para;</a></h2>
+<h3 id="namespace-quota">Namespace quota<a class="headerlink" href="#namespace-quota" title="Permanent link">&para;</a></h3>
+<p><code>UserSpace.spec.quota</code> maps to <code>ResourceQuota.hard</code>:</p>
+<ul>
+<li><code>requests.cpu</code></li>
+<li><code>requests.memory</code></li>
+<li><code>requests.storage</code></li>
+<li><code>requests.&lt;gpu resource&gt;</code>, only when <code>quota.gpu</code> is above zero. A hard zero
+  would refuse every pod that so much as mentions a GPU, which is correct but
+  writes an object noisier than the setting behind it. The resource name comes
+  from <code>PlatformConfig.spec.gpuResourceName</code>, <code>nvidia.com/gpu</code> by default</li>
+</ul>
+<p><code>quota.workspaces</code> is not in that list. A <code>ResourceQuota</code> counts objects that
+exist, and a stopped workspace still exists while consuming no CPU or memory -
+counting it would make stopping one pointless. The limit is enforced instead by
+the validating webhook, which counts only the workspaces that are running.</p>
+<p>The controller also creates a <code>LimitRange</code> with default requests of <code>100m</code> CPU and <code>128Mi</code> memory for any container created in the namespace without explicit requests.</p>
+<h3 id="workspace-storage">Workspace storage<a class="headerlink" href="#workspace-storage" title="Permanent link">&para;</a></h3>
+<p>A workspace uses one PVC from the <code>StatefulSet</code> volume claim template. The volume claim template name is <code>home</code>, so the PVC ends up named <code>home-&lt;workspace-name&gt;-0</code>.</p>
+<p>The controller does not set an owner reference from the <code>Workspace</code> to that PVC,
+and sets no <code>persistentVolumeClaimRetentionPolicy</code> on the <code>StatefulSet</code>. That is
+deliberate: stopping a workspace, and deleting one, both leave the home
+directory intact.</p>
+<p>Removing it is therefore a separate, explicit act. The delete dialog in
+<code>/admin/workspaces</code> offers it, ticked by default, and requires the workspace
+name to be typed before it will do anything - the confirmation is checked on the
+server, not only in the browser, so a scripted POST cannot skip it. <code>DELETE</code>
+over the REST API never touches the volume.</p>
+<p>The owner of a namespace may delete their own claims and nobody else's, and
+cannot create one: the <code>StatefulSet</code> provisions storage, so being able to remove
+your own volume is not being able to conjure new storage against the quota.</p>
+<p>An orphaned claim is easy to find, and worth looking for after any period of
+deleting workspaces by hand:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pvc<span class="w"> </span>-A<span class="w"> </span>-l<span class="w"> </span>dwpk.devops-ia.io/workspace
+</code></pre></div>
+<h3 id="configmaps-and-secrets">ConfigMaps and Secrets<a class="headerlink" href="#configmaps-and-secrets" title="Permanent link">&para;</a></h3>
+<p>dwpk itself does not create per-workspace ConfigMaps or Secrets. User-created ConfigMaps and Secrets live in the user's namespace because the <code>workspace</code> ServiceAccount is bound to the built-in <code>edit</code> ClusterRole there. Backup and retention for those objects is a cluster policy concern, not something dwpk automates.</p>
+<h2 id="observability-toggles">Observability toggles<a class="headerlink" href="#observability-toggles" title="Permanent link">&para;</a></h2>
+<p><code>Workspace.spec.observability</code> has two boolean fields:</p>
+<ul>
+<li><code>logsEnabled</code></li>
+<li><code>metricsEnabled</code></li>
+</ul>
+<p>Current implementation in <code>internal/workspace/statefulset.go</code>:</p>
+<ul>
+<li><code>logsEnabled</code> writes pod annotation <code>dwpk.devops-ia.io/logs-enabled=&lt;true|false&gt;</code></li>
+<li><code>metricsEnabled</code> writes pod label <code>dwpk.devops-ia.io/metrics-enabled=&lt;true|false&gt;</code></li>
+</ul>
+<p>What the repo does not ship:</p>
+<ul>
+<li>A log shipping sidecar injector for that annotation</li>
+<li>A workspace <code>PodMonitor</code> or Prometheus scrape job keyed off that label</li>
+</ul>
+<p>So these fields are hooks for cluster-level observability automation. Turning them on in the CRD only has an effect if your cluster has something watching that annotation or label.</p>
+<h2 id="admin-ui-screens">Admin UI screens<a class="headerlink" href="#admin-ui-screens" title="Permanent link">&para;</a></h2>
+<p>The UI has six admin routes:</p>
+<ul>
+<li><code>/admin/overview</code> - the platform at a glance: people, workspaces, catalog
+  entries, and what is running now</li>
+<li><code>/admin/users</code> - one row per person: their <code>UserSpace</code> joined to any local
+  password logins sharing its owner. Role, quota and account status are changed
+  here, and new users are added from the dialog at the top</li>
+<li><code>/admin/workspaces</code> - every workspace in the cluster, with start, stop and
+  delete. The delete dialog is where the home volume can be removed with the
+  workspace</li>
+<li><code>/admin/quota</code> - per-namespace usage against limit, computed from the
+  <code>Workspace</code> objects that are actually running</li>
+<li><code>/admin/catalog</code> - create, edit, deprecate and delete <code>WorkspaceImage</code> entries</li>
+<li><code>/admin/settings</code> - the platform name and logo, the GPU resource name, and a
+  read-only table of every environment variable the UI process read at startup</li>
+</ul>
+<p><code>/admin/users</code> replaced two earlier screens, <code>/admin/userspaces</code> and a separate
+local-user list. Keeping them apart meant nothing told you that a login had no
+<code>UserSpace</code> behind it, which is an account that exists and cannot sign in. The
+merged screen shows that row and says so.</p>
+<p>Each screen acts under the session's own token, so the API server decides what
+it may do. <code>/admin/users</code> also runs a <code>SelfSubjectAccessReview</code> before
+rendering, which saves showing a form that would 403 on submit.</p>
+<p>Every signed-in user has <code>/profile</code>: their role, quota with usage, and their own
+workspaces. Someone who signs in with a local password can change it
+there; an OAuth2 user is told their password lives with their provider.</p>
+<h2 id="session-and-token-lifecycle">Session and token lifecycle<a class="headerlink" href="#session-and-token-lifecycle" title="Permanent link">&para;</a></h2>
+<p>UI sessions are server-side, in memory.</p>
+<p>Defaults from code:</p>
+<ul>
+<li>UI session TTL: <code>15m</code></li>
+<li>Login challenge TTL: <code>5m</code></li>
+<li>Minted Kubernetes service account token lifetime: <code>1h</code></li>
+</ul>
+<p>Cookie names from <code>internal/ui/helpers.go</code>:</p>
+<ul>
+<li><code>dwpk_ui_session</code></li>
+<li><code>dwpk_ui_login_state</code></li>
+<li><code>dwpk_ui_login_next</code></li>
+</ul>
+<p>Cookie behavior from <code>internal/ui/login.go</code> and <code>internal/ui/middleware.go</code>:</p>
+<ul>
+<li>The session cookie is <code>HttpOnly</code>.</li>
+<li><code>Secure</code> follows <code>DWPK__UI_COOKIE_SECURE</code>, default <code>true</code>.</li>
+<li><code>SameSite=Lax</code>.</li>
+<li>The cookie stores only an opaque session ID.</li>
+<li>The bearer token is re-minted through <code>TokenRequest</code> and kept server-side.</li>
+<li>Logout deletes the UI session only. It does not stop the workspace.</li>
+</ul>
+<h2 id="day-2-operations">Day-2 operations<a class="headerlink" href="#day-2-operations" title="Permanent link">&para;</a></h2>
+<h3 id="review-readiness-and-failures">Review readiness and failures<a class="headerlink" href="#review-readiness-and-failures" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>userspaces
+kubectl<span class="w"> </span>get<span class="w"> </span>workspaces<span class="w"> </span>-A
+kubectl<span class="w"> </span>describe<span class="w"> </span>workspace<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;<span class="w"> </span>&lt;name&gt;
+kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>dwpk-system<span class="w"> </span>deployment/dwpk-controller-manager
+</code></pre></div>
+<p>Look at:</p>
+<ul>
+<li><code>status.phase</code></li>
+<li><code>status.conditions</code></li>
+<li>webhook rejections on create or update</li>
+<li>image pull failures or scheduling failures on the workspace pod</li>
+</ul>
+<h3 id="rotate-oauth-client-secrets">Rotate OAuth client secrets<a class="headerlink" href="#rotate-oauth-client-secrets" title="Permanent link">&para;</a></h3>
+<p>Update the Secret referenced by <code>ui.oauth.existingSecret</code>, then restart the UI Deployment so new environment values are loaded.</p>
+<h3 id="rotate-the-gateway-host-key">Rotate the gateway host key<a class="headerlink" href="#rotate-the-gateway-host-key" title="Permanent link">&para;</a></h3>
+<p>If the gateway uses <code>gateway.hostKey.existingSecret</code>, replace that Secret and restart the gateway pods. If the chart uses the default <code>emptyDir</code> host key storage, every pod restart rotates the host key already.</p>
+<h2 id="backup-and-recovery">Backup and recovery<a class="headerlink" href="#backup-and-recovery" title="Permanent link">&para;</a></h2>
+<p>What to back up:</p>
+<ul>
+<li>CRDs and CR instances: <code>WorkspaceImage</code>, <code>UserSpace</code>, <code>Workspace</code></li>
+<li>User namespaces created by the <code>UserSpace</code> reconciler</li>
+<li>PVCs for workspace home directories</li>
+<li>Any user-created ConfigMaps and Secrets in those namespaces</li>
+<li>OAuth client Secret and optional gateway host key Secret in <code>dwpk-system</code></li>
+</ul>
+<p>What recovery looks like:</p>
+<ol>
+<li>Restore the control plane components.</li>
+<li>Restore CRDs.</li>
+<li>Restore <code>WorkspaceImage</code> and <code>UserSpace</code> objects.</li>
+<li>Restore user namespaces and PVCs.</li>
+<li>Restore <code>Workspace</code> objects.</li>
+</ol>
+<p>Because home PVCs outlive the <code>Workspace</code>, storage recovery depends on preserving the namespace and the PVC. dwpk does not have its own backup controller.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

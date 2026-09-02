@@ -1,0 +1,1450 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Development Workspace Platform for Kubernetes">
+      
+      
+      
+        <link rel="canonical" href="https://devops-ia.github.io/dwpk/1.0/ARCHITECTURE/">
+      
+      
+        <link rel="prev" href="../QUICKSTART/">
+      
+      
+        <link rel="next" href="../INSTALLATION/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Architecture - dwpk</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="dwpk" class="md-header__button md-logo" aria-label="dwpk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            dwpk
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/devops-ia/dwpk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    devops-ia/dwpk
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../QUICKSTART/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../INSTALLATION/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ADMINISTRATION/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Administration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../USER_GUIDE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  User guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../GATEWAY_AWS/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Gateway on AWS
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../API_REFERENCE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ENVIRONMENT_VARIABLES/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Environment variables
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../TROUBLESHOOTING/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="dwpk" class="md-nav__button md-logo" aria-label="dwpk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    dwpk
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/devops-ia/dwpk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    devops-ia/dwpk
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../QUICKSTART/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Component map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manager
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manager">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#userspace-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UserSpace reconciliation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspace-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspace reconciliation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webhooks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ssh-gateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH gateway
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-provider-auth-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-provider auth model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security boundaries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High availability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-implementation-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current implementation notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../INSTALLATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADMINISTRATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../USER_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GATEWAY_AWS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway on AWS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ENVIRONMENT_VARIABLES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment variables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#component-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Component map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#api-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manager
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Manager">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#userspace-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UserSpace reconciliation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#workspace-reconciliation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workspace reconciliation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#webhooks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webhooks
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ssh-gateway" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSH gateway
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-provider-auth-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-provider auth model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security boundaries
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-availability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High availability
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-implementation-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current implementation notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h1>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>dwpk has three runtime components:</p>
+<ul>
+<li><code>cmd/manager</code>, the Kubebuilder controller manager</li>
+<li><code>cmd/gateway</code>, the SSH gateway</li>
+<li><code>cmd/ui</code>, the marketplace web UI</li>
+</ul>
+<p>The control plane state lives in Kubernetes objects. dwpk does not use an external database.</p>
+<h2 id="component-map">Component map<a class="headerlink" href="#component-map" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>Developer browser / VS Code / ssh client
+            |
+            | HTTPS or SSH
+            v
++------------------------------+
+| dwpk UI                      |
+| OAuth2 login, session store, |
+| TokenRequest per request     |
++------------------------------+
+            |
+            | Kubernetes API with minted ServiceAccount token
+            v
++------------------------------+
+| kube-apiserver               |
+| WorkspaceImage, UserSpace,   |
+| Workspace, RBAC, webhooks    |
++------------------------------+
+            ^
+            |
++------------------------------+        +------------------------------+
+| dwpk manager                 |        | dwpk gateway                 |
+| reconciles CRDs into         |        | SSH auth, pods/exec,         |
+| namespaces, quotas,          |        | pods/portforward             |
+| StatefulSets, Services       |        +------------------------------+
++------------------------------+                     |
+            |                                        |
+            +------------------------------+---------+
+                                           |
+                                           v
+                                user namespace, workspace pod,
+                                home PVC, ServiceAccount, RBAC
+</code></pre></div>
+<h2 id="api-model">API model<a class="headerlink" href="#api-model" title="Permanent link">&para;</a></h2>
+<p>Four CRDs define the product surface:</p>
+<ul>
+<li><code>WorkspaceImage</code>, cluster scoped catalog entries curated by admins or synced from a registry</li>
+<li><code>UserSpace</code>, cluster scoped records that map one person to one namespace and its quota, RBAC, and network policy</li>
+<li><code>Workspace</code>, namespaced developer sessions backed by a single-replica <code>StatefulSet</code></li>
+<li><code>ImageRegistry</code>, cluster scoped configuration for an external registry (AWS ECR today) to poll and sync into the catalog</li>
+</ul>
+<p>Relationship chain:</p>
+<ol>
+<li>A <code>WorkspaceImage</code> publishes the runtime image, placement rules, working directory, and UID. It does not publish sizes: resources are chosen per workspace. It optionally names an <code>imagePullSecretRef</code> for a private image.</li>
+<li>A <code>UserSpace</code> provisions <code>dwpk-&lt;name&gt;</code> and binds the owner, plus the <code>session</code> and <code>workspace</code> ServiceAccounts, to namespace-scoped access. It also mirrors every labelled pull Secret from the manager's namespace into its own, so a private catalog image can actually be pulled there.</li>
+<li>A <code>Workspace</code> in that namespace references one <code>WorkspaceImage</code> by name and turns into a headless <code>Service</code>, a single-pod <code>StatefulSet</code>, and a retained home PVC.</li>
+<li>An <code>ImageRegistry</code> polls its configured registry on an interval, applies include/exclude and tag selection, and owns the <code>WorkspaceImage</code> objects it creates (labelled by registry name, so a prune pass and a second registry never collide).</li>
+</ol>
+<h2 id="manager">Manager<a class="headerlink" href="#manager" title="Permanent link">&para;</a></h2>
+<p><code>cmd/manager</code> wires three reconcilers and the <code>Workspace</code> admission webhooks. <code>ImageRegistryReconciler</code> is the one built around a poll timer rather than purely a watch.</p>
+<h3 id="userspace-reconciliation">UserSpace reconciliation<a class="headerlink" href="#userspace-reconciliation" title="Permanent link">&para;</a></h3>
+<p><code>internal/controller/userspace_controller.go</code> turns one <code>UserSpace</code> into these children:</p>
+<ul>
+<li>Namespace <code>dwpk-&lt;userspace-name&gt;</code></li>
+<li><code>ResourceQuota</code> named <code>dwpk-quota</code></li>
+<li><code>LimitRange</code> named <code>dwpk-limits</code></li>
+<li><code>NetworkPolicy</code> named <code>dwpk-isolation</code></li>
+<li>Three <code>ServiceAccount</code>s: <code>workspace</code>, <code>session</code>, and <code>session-readonly</code> (see below)</li>
+<li>Role <code>dwpk-workspace-user</code> (full owner rights) and Role <code>dwpk-workspace-reader</code> (read-only)</li>
+<li>RoleBindings <code>dwpk-owner</code>, <code>dwpk-reader</code>, and <code>dwpk-workspace-edit</code></li>
+<li>ClusterRole <code>dwpk-userspace-&lt;userspace-name&gt;</code></li>
+<li>ClusterRoleBinding <code>dwpk-userspace-&lt;userspace-name&gt;</code></li>
+</ul>
+<p>Three ServiceAccounts, not one, because a browser session and a workspace container must never
+share an identity (<code>internal/workspace/names.go</code>):</p>
+<ul>
+<li><code>workspace</code> is the identity the workspace pod itself runs as. The <code>dwpk-workspace-edit</code>
+  RoleBinding grants it the built-in <code>edit</code> ClusterRole, scoped to that namespace only - this is
+  what makes <code>kubectl</code> work from inside a session against the user's own namespace.</li>
+<li><code>session</code> is the identity the UI mints a token for on every authenticated request
+  (<code>TokenScopeFull</code>). It is bound into <code>dwpk-owner</code> alongside the human's own OIDC <code>User</code> subject,
+  so a browser session gets exactly the same namespaced rights as the owner: full CRUD on
+  <code>Workspace</code>, pod/log/event reads, and the <code>pods/exec</code> grant the browser terminal needs.</li>
+<li><code>session-readonly</code> backs read-scoped API tokens (<code>TokenScopeRead</code>, see
+  <a href="../API_REFERENCE/">API reference</a>). It is bound into <code>dwpk-reader</code>, the same shape as
+  <code>dwpk-owner</code> minus every write verb. Kubernetes cannot narrow a <code>TokenRequest</code> below the
+  ServiceAccount's own rights, so a read-only token has to mint for a ServiceAccount that only
+  ever had read rights to begin with.</li>
+</ul>
+<p>The ClusterRole exists because <code>UserSpace</code> and <code>WorkspaceImage</code> are cluster scoped. It grants:</p>
+<ul>
+<li><code>get</code>, <code>watch</code>, and <code>patch</code> on exactly one <code>UserSpace</code>, via <code>resourceNames</code> (<code>patch</code> only so a
+  person can save their own SSH keys from <em>My profile</em> - the validator refuses anyone but an
+  administrator changing a field besides <code>spec.sshAuthorizedKeys</code>)</li>
+<li><code>get</code>, <code>list</code>, <code>watch</code>, and the custom <code>use</code> verb on <code>WorkspaceImage</code></li>
+</ul>
+<p>Its ClusterRoleBinding names three subjects: the owner's OIDC <code>User</code>, <code>session</code>, and
+<code>session-readonly</code> - all three read the catalog and their own <code>UserSpace</code> by name.</p>
+<p>The reconciler also resolves the Kubernetes API server address from the <code>kubernetes</code> Service and its <code>EndpointSlice</code> objects, then bakes that address into the <code>NetworkPolicy</code> egress rules.</p>
+<h3 id="workspace-reconciliation">Workspace reconciliation<a class="headerlink" href="#workspace-reconciliation" title="Permanent link">&para;</a></h3>
+<p><code>internal/controller/workspace_controller.go</code> drives the developer session lifecycle.</p>
+<p>Flow:</p>
+<ol>
+<li>Fetch the referenced <code>WorkspaceImage</code>.</li>
+<li>Fail with <code>status.phase=Pending</code> and <code>ImageResolved=False</code> if the image does not exist.</li>
+<li>Fail if <code>spec.storage</code> is still unset, which means the CRD default did not apply.</li>
+<li>Apply a headless <code>Service</code> first, then a <code>StatefulSet</code>.</li>
+<li>Reflect observed state into <code>status.phase</code>, <code>status.endpoint</code>, <code>status.podName</code>, <code>status.observedGeneration</code>, and <code>status.conditions</code>.</li>
+</ol>
+<p>The controller uses a <code>StatefulSet</code>, not a <code>Deployment</code> or a bare <code>Pod</code>, because the <code>StatefulSet</code> gives stable pod naming, suspend and resume through <code>replicas</code>, and PVC retention across restarts.</p>
+<p><code>spec.running=true</code> maps to one replica. <code>spec.running=false</code> maps to zero replicas. The controller never deletes the home PVC - not when a workspace is suspended, and not when it is deleted. Removing it is an explicit act by the person deleting the workspace, offered in the UI's delete dialog and carried out with their own token.</p>
+<h3 id="webhooks">Webhooks<a class="headerlink" href="#webhooks" title="Permanent link">&para;</a></h3>
+<p>The manager serves two <code>Workspace</code> webhooks:</p>
+<ul>
+<li>A mutating webhook on CREATE</li>
+<li>A validating webhook on CREATE and UPDATE</li>
+</ul>
+<p>The mutating webhook does two things, both needing an object the CRD cannot see:</p>
+<ul>
+<li>Copies the owner's <code>UserSpace.spec.sshAuthorizedKeys</code> when the workspace names none</li>
+<li>Stamps <code>metadata.annotations["dwpk.devops-ia.io/requester"]</code> from <code>request.userInfo.username</code></li>
+</ul>
+<p>The validating webhook makes the cross-object checks:</p>
+<ul>
+<li><code>spec.imageRef.name</code> must resolve, and on create the entry must still be on offer</li>
+<li>Every SSH key must parse as a real key blob, which CEL cannot do - it can check a prefix but cannot decode base64</li>
+<li><code>spec.volumes</code> must not shadow the home volume, and mounts must resolve</li>
+<li>Requests must not exceed limits, and an extended resource must have them equal</li>
+<li>The requested resources plus what is already running must fit in <code>UserSpace.spec.quota</code>, workspace count included</li>
+</ul>
+<p>The quota check runs on update as well as create. It used to be skipped there,
+on the reasoning that a count cannot change on an update - which stopped being
+true when resources became free-form, since a resize is an update.</p>
+<p>Rules that do not need cross-object reads stay on the CRD as CEL validations. Examples: <code>UserSpace.spec.owner</code> immutability, <code>Workspace.spec.storage</code> immutability, SSH key prefix checks, and <code>running=true</code> requiring at least one SSH key.</p>
+<h2 id="ssh-gateway">SSH gateway<a class="headerlink" href="#ssh-gateway" title="Permanent link">&para;</a></h2>
+<p>The gateway is a separate stateless server. It does not use leader election.</p>
+<p>Connection flow in <code>internal/gateway/server.go</code>:</p>
+<ol>
+<li>Accept SSH on the configured listen address.</li>
+<li>List <code>Workspace</code> objects.</li>
+<li>Match the SSH username to <code>Workspace.metadata.name</code>.</li>
+<li>Parse each <code>spec.sshAuthorizedKeys</code> entry and compare the offered public key.</li>
+<li>Store the resolved namespace and workspace name in SSH permissions.</li>
+<li>Re-fetch the <code>Workspace</code> and reject the session if it is not <code>Running</code>.</li>
+<li>Resolve the pod from <code>status.podName</code> or <code>&lt;workspace-name&gt;-0</code>.</li>
+<li>Reject the target if the pod does not carry <code>dwpk.devops-ia.io/workspace=&lt;workspace-name&gt;</code>.</li>
+<li>Open <code>pods/exec</code> for shell and exec channels.</li>
+<li>Open <code>pods/portforward</code> when SSH <code>direct-tcpip</code> targets <code>localhost</code>, <code>127.0.0.1</code>, or <code>::1</code>.</li>
+<li>Patch <code>status.lastActivityTime</code> on session open and close.</li>
+</ol>
+<p>Why <code>pods/portforward</code> matters: VS Code Remote-SSH opens loopback listeners inside the pod. The gateway uses <code>pods/portforward</code> for <code>direct-tcpip</code> so those listeners stay reachable.</p>
+<h2 id="ui">UI<a class="headerlink" href="#ui" title="Permanent link">&para;</a></h2>
+<p>The UI is a Go server with <code>templ</code> templates, htmx, and embedded assets. It is not a SPA.</p>
+<p>Routes from <code>internal/ui/server.go</code>:</p>
+<ul>
+<li><code>GET /login</code></li>
+<li><code>GET /login/{provider}</code></li>
+<li><code>GET /callback/{provider}</code></li>
+<li><code>GET /</code> (dashboard)</li>
+<li><code>GET /catalog</code></li>
+<li><code>GET /workspace-images/{name}/icon</code></li>
+<li><code>GET /new</code></li>
+<li><code>POST /new</code></li>
+<li><code>GET /w/{name}</code></li>
+<li><code>GET /w/{name}/status</code></li>
+<li><code>POST /w/{name}/start</code></li>
+<li><code>POST /w/{name}/stop</code></li>
+<li><code>GET /w/{name}/logs</code></li>
+<li><code>GET /api/v1/workspaces</code> and the rest of the REST surface - see <code>docs/API_REFERENCE.md</code></li>
+<li><code>GET /w/{name}/terminal/ws</code></li>
+<li><code>GET /admin/overview</code></li>
+<li><code>GET /admin/users</code></li>
+<li><code>GET /admin/quota</code></li>
+<li><code>GET /admin/catalog</code></li>
+<li><code>GET /admin/settings</code></li>
+<li><code>GET /admin/workspaces</code></li>
+<li><code>GET /profile</code></li>
+<li><code>POST /profile/password</code></li>
+<li><code>POST /logout</code></li>
+</ul>
+<p>Current screens:</p>
+<ul>
+<li>Login picker</li>
+<li>Dashboard: workspace status cards, counts, and quota usage - the landing page</li>
+<li>Catalog with text and tag filters, plus a deprecated toggle, at <code>/catalog</code></li>
+<li>Workspace create form</li>
+<li>Workspace details page with SSH command, VS Code deep link, start and stop buttons</li>
+<li>Browser terminal tab backed by a websocket, with a connection chip and a reconnect button</li>
+<li>Logs and Events tabs, both read with the requesting user's own token</li>
+<li>Admin users page, joining UserSpaces to local password logins</li>
+<li>Admin quota page, usage against limit</li>
+<li>Admin catalog, workspaces, overview and settings pages</li>
+<li>My profile, with quota usage and a password change for local logins</li>
+</ul>
+<p>The terminal is xterm.js, vendored under <code>internal/ui/assets/vendor</code> because the
+CSP allows no CDN. It connects when its tab is first opened and not before: one
+websocket is one <code>kubectl exec</code>, so connecting on page load started a shell in
+the pod whether or not anyone wanted one.</p>
+<p><code>internal/ui/workspace.templ</code> splits the page in two on purpose. Only the status
+card polls; the tab bar, the terminal and the log view sit outside it. They used
+to be inside the polled region, so every three-second tick replaced the terminal
+element - orphaning its socket, wiping the output and resetting the selected tab.
+Anything that has to survive a poll belongs outside <code>WorkspaceStatusCard</code>.</p>
+<p>Logs poll rather than stream. A second websocket would be a second transport to
+secure for a tail a five-second <code>GET</code> already delivers. There is no metrics view:
+it would need <code>metrics.k8s.io</code>, which dwpk does not depend on.</p>
+<p>Destructive actions go through <code>confirmDelete</code> in <code>internal/ui/layout.templ</code> - a
+native <code>&lt;dialog&gt;</code> holding the POST form, so the button on the page only ever
+opens a question. The workspace confirmation names the retained home PVC, because
+no <code>persistentVolumeClaimRetentionPolicy</code> is set on the StatefulSet
+(<code>internal/workspace/statefulset.go</code>) and the volume therefore outlives the
+workspace.</p>
+<h2 id="multi-provider-auth-model">Multi-provider auth model<a class="headerlink" href="#multi-provider-auth-model" title="Permanent link">&para;</a></h2>
+<p>The provider registry supports these names:</p>
+<ul>
+<li><code>entra-id</code></li>
+<li><code>google</code></li>
+<li><code>gitlab</code></li>
+<li><code>keycloak</code></li>
+<li><code>github</code></li>
+</ul>
+<p><code>cmd/ui/main.go</code> loads provider config from environment. OIDC providers use issuer discovery plus ID token claim checks. GitHub uses OAuth2 plus REST calls to <code>/user</code> and <code>/user/emails</code> because it is the one supported provider without an ID token flow in this codebase.</p>
+<p>Per login:</p>
+<ol>
+<li>User picks a provider at <code>/login</code>.</li>
+<li>UI creates a short-lived login challenge with state and nonce.</li>
+<li>Provider returns an authorization code to <code>/callback/{provider}</code>.</li>
+<li>UI exchanges the code for tokens.</li>
+<li>UI reads a verified email from the provider response.</li>
+<li>UI resolves a <code>UserSpace</code> whose <code>spec.owner</code> equals that email.</li>
+<li>UI creates a server-side session and stores only an opaque session ID in the browser cookie.</li>
+<li>For each authenticated request, UI mints a short-lived token for the <code>session</code> ServiceAccount in the user's namespace by calling the Kubernetes <code>TokenRequest</code> API (<code>session-readonly</code> instead, for a read-scoped API token - see <a href="../API_REFERENCE/">API reference</a>).</li>
+<li>UI forwards Kubernetes requests with that minted token.</li>
+</ol>
+<p>This matters for security. The UI does not keep standing Kubernetes write access for user actions. Authorization still comes from the <code>session</code> ServiceAccount's own RBAC in the target namespace - a separate identity from the <code>workspace</code> ServiceAccount the pod itself runs as, so a shell inside a workspace never inherits whatever rights an administrator's own browser session carries.</p>
+<h2 id="security-boundaries">Security boundaries<a class="headerlink" href="#security-boundaries" title="Permanent link">&para;</a></h2>
+<p>Main boundaries in the current code:</p>
+<ul>
+<li>Identity comes from external OAuth2 providers.</li>
+<li>Namespace isolation comes from one <code>UserSpace</code> namespace per person.</li>
+<li>Catalog access is checked with <code>SelfSubjectAccessReview</code> for the custom <code>use</code> verb on <code>WorkspaceImage</code>.</li>
+<li>Session access comes from exact public key matches in <code>Workspace.spec.sshAuthorizedKeys</code>.</li>
+<li>Workspace API access comes from a minted <code>session</code> (or, for a read-scoped API token, <code>session-readonly</code>) ServiceAccount token scoped to the user's namespace - never the <code>workspace</code> ServiceAccount the pod itself runs as.</li>
+<li>Gateway pod access is derived from the <code>Workspace</code> object, never from a client-supplied pod name.</li>
+<li>Webhook <code>namespaceSelector</code> excludes <code>dwpk-system</code> and <code>kube-system</code> so system workloads do not deadlock behind the webhook.</li>
+<li><code>ImageRegistry</code> credentials are never stored in the cluster: auth resolves through the AWS SDK's default credential chain (IRSA, EKS Pod Identity, an instance profile, or <code>spec.aws.roleArn</code> assumed via STS), all resolved inside the manager process. The one Secret this feature does touch - <code>imagePullSecretRef</code> - lives in the manager's own namespace and is mirrored per user namespace by <code>UserSpaceReconciler</code>, never read by the gateway (SPEC §6.5: the gateway never reads Secrets).</li>
+</ul>
+<h2 id="high-availability">High availability<a class="headerlink" href="#high-availability" title="Permanent link">&para;</a></h2>
+<p>Leader election is enabled only for the manager. <code>cmd/manager/main.go</code> sets:</p>
+<ul>
+<li><code>LeaderElection=true</code> when <code>--leader-elect</code> is passed</li>
+<li><code>LeaderElectionID=dwpk-controller.dwpk.devops-ia.io</code></li>
+<li><code>LeaderElectionNamespace=dwpk-system</code></li>
+<li>Lease duration 15s</li>
+<li>Renew deadline 10s</li>
+<li>Retry period 2s</li>
+<li><code>LeaderElectionReleaseOnCancel=true</code></li>
+</ul>
+<p>The raw kustomize deployment in <code>config/manager/manager.yaml</code> runs two manager replicas. The Helm chart defaults <code>manager.replicas</code> to <code>1</code>, so HA with Helm needs an explicit override.</p>
+<p>The gateway and UI are ordinary stateless Deployments. The chart defaults are <code>gateway.replicas=2</code> and <code>ui.replicas=1</code>.</p>
+<h2 id="current-implementation-notes">Current implementation notes<a class="headerlink" href="#current-implementation-notes" title="Permanent link">&para;</a></h2>
+<p>A few design points are present in the API or spec but not finished in code:</p>
+<ul>
+<li><code>Workspace.spec.idleTimeout</code> exists, and the gateway updates <code>status.lastActivityTime</code>, but there is no <code>IdleReconciler</code> in the repository yet. Auto-stop on idle is not implemented.</li>
+<li><code>Workspace.spec.observability.logsEnabled</code> and <code>metricsEnabled</code> only stamp a pod annotation and label. The repo does not ship a workspace log sidecar injector or a workspace <code>PodMonitor</code>.</li>
+<li>The admin pages are routed in the UI, but the standard per-user <code>session</code> ServiceAccount does not get cluster-wide list rights. Those pages only work if an admin adds broader RBAC for that user's <code>session</code> service account.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

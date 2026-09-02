@@ -1,0 +1,1333 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Development Workspace Platform for Kubernetes">
+      
+      
+      
+        <link rel="canonical" href="https://devops-ia.github.io/dwpk/1.0/USER_GUIDE/">
+      
+      
+        <link rel="prev" href="../ADMINISTRATION/">
+      
+      
+        <link rel="next" href="../GATEWAY_AWS/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>User guide - dwpk</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#user-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="dwpk" class="md-header__button md-logo" aria-label="dwpk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            dwpk
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              User guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/devops-ia/dwpk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    devops-ia/dwpk
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../QUICKSTART/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ARCHITECTURE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../INSTALLATION/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Installation
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ADMINISTRATION/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Administration
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  User guide
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../GATEWAY_AWS/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Gateway on AWS
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../API_REFERENCE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ENVIRONMENT_VARIABLES/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Environment variables
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../TROUBLESHOOTING/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Troubleshooting
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="dwpk" class="md-nav__button md-logo" aria-label="dwpk" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    dwpk
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/devops-ia/dwpk" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    devops-ia/dwpk
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../QUICKSTART/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../INSTALLATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ADMINISTRATION/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sign-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sign in
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting started
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browse-the-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browse the catalog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-a-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create a workspace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wait-for-it-to-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wait for it to start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connect-with-ssh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connect with SSH
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connect-with-vs-code-remote-ssh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connect with VS Code Remote-SSH
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-the-browser-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use the browser terminal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-the-workspace-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read the workspace logs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#start-and-stop-a-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start and stop a workspace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-persists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What persists
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-cannot-do-by-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you cannot do by default
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../GATEWAY_AWS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gateway on AWS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../API_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ENVIRONMENT_VARIABLES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment variables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../TROUBLESHOOTING/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Troubleshooting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#before-you-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sign-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sign in
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-started" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting started
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#browse-the-catalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Browse the catalog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-a-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create a workspace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wait-for-it-to-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wait for it to start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connect-with-ssh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connect with SSH
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#connect-with-vs-code-remote-ssh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Connect with VS Code Remote-SSH
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#use-the-browser-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Use the browser terminal
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#read-the-workspace-logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Read the workspace logs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#start-and-stop-a-workspace" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Start and stop a workspace
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-persists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What persists
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-cannot-do-by-default" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you cannot do by default
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="user-guide">User guide<a class="headerlink" href="#user-guide" title="Permanent link">&para;</a></h1>
+<h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">&para;</a></h2>
+<p>A cluster admin must create your <code>UserSpace</code> first. The UI login flow resolves your provider email against <code>UserSpace.spec.owner</code>. If there is no match, login is denied.</p>
+<h2 id="sign-in">Sign in<a class="headerlink" href="#sign-in" title="Permanent link">&para;</a></h2>
+<p>Open the UI <code>/login</code> page. Current provider buttons in the code:</p>
+<ul>
+<li>Entra ID</li>
+<li>Google</li>
+<li>GitLab</li>
+<li>Keycloak</li>
+<li>GitHub</li>
+</ul>
+<p>Flow:</p>
+<ol>
+<li>Pick your provider.</li>
+<li>Complete the provider login.</li>
+<li>Return to dwpk.</li>
+<li>Land on the catalog page if your email matches an existing <code>UserSpace</code>.</li>
+</ol>
+<p>The UI session cookie is separate from your workspace lifecycle. Logging out does not stop a running workspace.</p>
+<h2 id="getting-started">Getting started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
+<p>Your first sign-in lands on a four-step walkthrough: add an SSH key, browse the catalog, start a
+workspace, finish. It is optional. Navigate away whenever you like — nothing is blocked while it is
+unfinished, and <strong>Get started</strong> stays in the sidebar until you press Finish, which is also how you
+get back to it. After that it disappears and every sign-in goes straight to your overview.</p>
+<p>If you dismiss it and later want it again, <code>/onboarding</code> still renders. Pressing Finish a second time
+changes nothing.</p>
+<h2 id="browse-the-catalog">Browse the catalog<a class="headerlink" href="#browse-the-catalog" title="Permanent link">&para;</a></h2>
+<p>The catalog page is <code>/</code> after login.</p>
+<p>What you can do there:</p>
+<ul>
+<li>Search by free text with <code>q</code></li>
+<li>Filter by tag with <code>tag</code></li>
+<li>Show deprecated entries with <code>deprecated=1</code></li>
+</ul>
+<p>The backend checks <code>use</code> permission on each <code>WorkspaceImage</code> with <code>SelfSubjectAccessReview</code>. If you are not allowed to use an image, it does not appear in the catalog.</p>
+<h2 id="create-a-workspace">Create a workspace<a class="headerlink" href="#create-a-workspace" title="Permanent link">&para;</a></h2>
+<p>Open <code>Create workspace</code> from a catalog card, or go to <code>/new?image=&lt;workspaceimage-name&gt;</code>.</p>
+<p>Fields on the form:</p>
+<ul>
+<li>Name, unique among your workspaces</li>
+<li>Resources: CPU and memory as a minimum and a maximum, then GPU and storage</li>
+<li>SSH public key</li>
+</ul>
+<p>Notes from the current UI:</p>
+<ul>
+<li>There are no size presets. You type the resources you want, within your quota.</li>
+<li>CPU and memory have a min and a max - a request and a limit. The minimum is
+  what is reserved for you and counted against your quota; the maximum is what
+  you may burst to.</li>
+<li>GPU and storage take one value each. A PVC has a single size, and Kubernetes
+  requires a GPU request and limit to be equal.</li>
+<li>The form checks your remaining quota as you type, and the admission webhook
+  checks it again on submit. The second check is the one that counts.</li>
+<li>Storage cannot be changed afterwards: a PVC cannot shrink. Everything else
+  needs the workspace recreated, which is why the form is worth a second look.</li>
+<li>The SSH key field remembers the last key in browser <code>localStorage</code> under <code>dwpk.lastSshPublicKey</code>.</li>
+<li>The UI submits a normal <code>Workspace</code> object to the Kubernetes API. Validation errors come back from the API server.</li>
+</ul>
+<h2 id="wait-for-it-to-start">Wait for it to start<a class="headerlink" href="#wait-for-it-to-start" title="Permanent link">&para;</a></h2>
+<p>After create, the UI redirects to <code>/w/&lt;workspace-name&gt;</code>.</p>
+<p>The page shows:</p>
+<ul>
+<li><code>status.phase</code></li>
+<li>Endpoint</li>
+<li>Conditions summary</li>
+<li>The full SSH command</li>
+<li>A VS Code Remote-SSH deep link</li>
+<li>Start and stop buttons</li>
+</ul>
+<p>While the workspace is not settled, the page polls <code>/w/&lt;workspace-name&gt;/status</code> every 3 seconds.</p>
+<h2 id="connect-with-ssh">Connect with SSH<a class="headerlink" href="#connect-with-ssh" title="Permanent link">&para;</a></h2>
+<p>The command shown on the page is:</p>
+<div class="highlight"><pre><span></span><code>ssh &lt;workspace-name&gt;@&lt;gateway-host&gt;
+</code></pre></div>
+<p>The SSH username is the workspace name. Authentication is by public key. The gateway accepts the session only when the offered public key matches one of the entries in <code>Workspace.spec.sshAuthorizedKeys</code>.</p>
+<p>If your client prompts about a new host key often, ask your admin whether the gateway is using an ephemeral host key instead of a Secret-backed fixed key.</p>
+<h2 id="connect-with-vs-code-remote-ssh">Connect with VS Code Remote-SSH<a class="headerlink" href="#connect-with-vs-code-remote-ssh" title="Permanent link">&para;</a></h2>
+<p>The UI builds this link format:</p>
+<div class="highlight"><pre><span></span><code>vscode://vscode-remote/ssh-remote+&lt;workspace-name&gt;@&lt;gateway-host&gt;/
+</code></pre></div>
+<p>Click <code>Open in VS Code</code>, or paste the same SSH target into Remote-SSH manually.</p>
+<p>Catalog image contract for VS Code in this repo:</p>
+<ul>
+<li>A shell, <code>bash</code> or <code>sh</code></li>
+<li><code>curl</code> or <code>wget</code></li>
+<li><code>tar</code></li>
+<li><code>gzip</code></li>
+</ul>
+<p>If VS Code fails during server bootstrap, the image may be missing one of those tools.</p>
+<h2 id="use-the-browser-terminal">Use the browser terminal<a class="headerlink" href="#use-the-browser-terminal" title="Permanent link">&para;</a></h2>
+<p>The workspace page has a <code>Terminal</code> tab. Current state in the repo:</p>
+<ul>
+<li>Backend websocket path exists at <code>/w/&lt;workspace-name&gt;/terminal/ws</code></li>
+<li>The frontend is a textarea fallback, not a full terminal emulator</li>
+<li>Press <code>Enter</code> to send the current line</li>
+<li>Use <code>Shift+Enter</code> for a newline in the textarea</li>
+</ul>
+<p>This terminal reuses the same gateway exec path as SSH.</p>
+<p>A chip above the output says whether you are connected. If the connection drops</p>
+<ul>
+<li>the pod restarted, the workspace was stopped, the network moved - it turns red
+and a <code>Reconnect</code> button appears. The tab shows <code>No pod to attach to</code> when the
+workspace is suspended, because there is nothing to attach to yet.</li>
+</ul>
+<h2 id="read-the-workspace-logs">Read the workspace logs<a class="headerlink" href="#read-the-workspace-logs" title="Permanent link">&para;</a></h2>
+<p>Beside <code>Terminal</code> is a <code>Logs</code> tab. It tails the last 200 lines the workspace
+container wrote to stdout or stderr, refreshed every five seconds.</p>
+<p>It reads with your own token, so you see the logs of workspaces in your own
+namespace and nobody else's. A refusal shows the API server's own message rather
+than a generic error.</p>
+<p>Four things it can say, and what each means:</p>
+<ul>
+<li>Log lines - the container is writing output.</li>
+<li><code>No output yet</code> - the container is running and has written nothing. Not a fault.</li>
+<li><code>No pod is running</code> - the workspace is stopped. Start it first.</li>
+<li><code>Logs are unavailable</code> - with the reason underneath, usually an RBAC message.</li>
+</ul>
+<p>There is no metrics view. Resource numbers live on the quota screen.</p>
+<h2 id="start-and-stop-a-workspace">Start and stop a workspace<a class="headerlink" href="#start-and-stop-a-workspace" title="Permanent link">&para;</a></h2>
+<p>The page has <code>Start</code> and <code>Stop</code> buttons.</p>
+<p>What they do:</p>
+<ul>
+<li><code>Start</code> patches <code>spec.running=true</code></li>
+<li><code>Stop</code> patches <code>spec.running=false</code></li>
+</ul>
+<p>What that means in the cluster:</p>
+<ul>
+<li><code>true</code> scales the workspace <code>StatefulSet</code> to one replica</li>
+<li><code>false</code> scales it to zero replicas</li>
+<li>The home PVC stays in place either way</li>
+</ul>
+<p>Stopping a workspace is different from logging out:</p>
+<ul>
+<li>Logout clears the UI session only.</li>
+<li>Stop changes the workspace state in Kubernetes.</li>
+</ul>
+<h2 id="what-persists">What persists<a class="headerlink" href="#what-persists" title="Permanent link">&para;</a></h2>
+<p>Your home directory lives on the workspace PVC. Stop and start keep that data.</p>
+<p>Deleting a workspace is immediate and cannot be undone. Its pod and its SSH
+endpoint go with it.</p>
+<p>The home volume is a separate object - the PVC named <code>home-&lt;workspace-name&gt;-0</code> -
+and Kubernetes never removes it on its own. The delete dialog therefore asks:
+<strong>Delete the home volume as well</strong> is ticked by default, and untick it to keep
+the data. Deleting the workspace with the box unticked leaves the volume behind,
+unattached; creating a new workspace with the same name does not reattach it, so
+remove it by hand when you no longer want it:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>delete<span class="w"> </span>pvc<span class="w"> </span>home-&lt;workspace-name&gt;-0<span class="w"> </span>-n<span class="w"> </span>&lt;your-namespace&gt;
+</code></pre></div>
+<p>Because the volume goes by default, the dialog asks you to type the workspace
+name before it will delete anything. Deleting over the REST API never touches
+the volume.</p>
+<p>The repo also allows you to use Kubernetes resources in your namespace with the workspace service account, because that service account is bound to the built-in <code>edit</code> ClusterRole in your namespace.</p>
+<h2 id="what-you-cannot-do-by-default">What you cannot do by default<a class="headerlink" href="#what-you-cannot-do-by-default" title="Permanent link">&para;</a></h2>
+<p>The default session token does not grant cluster-wide admin rights.</p>
+<p>That means:</p>
+<ul>
+<li>You cannot list other users' namespaces or workspaces.</li>
+<li>The <code>/admin/users</code> and <code>/admin/quota</code> pages usually return <code>403 Forbidden</code> for normal users.</li>
+<li>You only get the permissions already bound to the <code>workspace</code> ServiceAccount in your namespace.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,321 @@
+package ui
+
+// The page is two panels, and the split matters. Only the status card polls;
+// the tabs, the terminal and the log view sit outside it and are never swapped.
+// They used to live inside the polled region, so every three seconds while a
+// workspace was Starting the terminal element was replaced - socket orphaned,
+// output wiped, tab selection thrown back to the first tab.
+templ WorkspacePage(data WorkspacePageData) {
+	<section class="panel">
+		<h1>Workspace { data.Workspace.Name }</h1>
+		@WorkspaceStatusCard(data)
+	</section>
+	<section class="panel">
+		<div class="tabs" role="tablist" aria-label="Workspace views">
+			<button type="button" class="tab-button active" role="tab" aria-selected="true" tabindex="0" data-tab-button="details">Details</button>
+			<button type="button" class="tab-button" role="tab" aria-selected="false" tabindex="-1" data-tab-button="terminal">Terminal</button>
+			<button type="button" class="tab-button" role="tab" aria-selected="false" tabindex="-1" data-tab-button="logs">Logs</button>
+			<button type="button" class="tab-button" role="tab" aria-selected="false" tabindex="-1" data-tab-button="events">Events</button>
+		</div>
+		<div class="tab-panel active" role="tabpanel" data-tab-panel="details">
+			@workspaceDetails(data)
+		</div>
+		<div class="tab-panel" role="tabpanel" data-tab-panel="terminal">
+			@workspaceTerminal(data)
+		</div>
+		<div class="tab-panel" role="tabpanel" data-tab-panel="logs">
+			@workspaceLogs(data)
+		</div>
+		<div class="tab-panel" role="tabpanel" data-tab-panel="events">
+			@workspaceEvents(data)
+		</div>
+	</section>
+}
+
+// WorkspaceStatusCard is the polled fragment: everything on it is derived from
+// status, so everything on it goes stale. It replaces itself, which is what
+// keeps the hx-get attributes alive across a swap.
+templ WorkspaceStatusCard(data WorkspacePageData) {
+	<div
+		id="workspace-status"
+		class="status-card"
+		hx-get={ linkPath(ctx, "/w/"+data.Workspace.Name+"/status") }
+		hx-trigger={ workspacePollTrigger(data.Settled) }
+		hx-swap="outerHTML"
+	>
+		if failureReason(data.Workspace) != "" {
+			<p class="notice error" role="alert">
+				<strong>Workspace failed to start.</strong>
+				{ failureReason(data.Workspace) }
+			</p>
+		}
+		<div class="status-grid">
+			<div><strong>Status</strong><div>@statusChip(data.Workspace.Status.State)</div></div>
+			<div><strong>Endpoint</strong><div>{ data.Endpoint }</div></div>
+			<div><strong>Pod</strong><div>{ orDash(data.Workspace.Status.PodName) }</div></div>
+		</div>
+		<div class="command-row">
+			<code id="ssh-command">{ data.SSHCommand }</code>
+			<button type="button" data-copy-target="ssh-command">Copy</button>
+			<a class="button-link secondary" href={ templ.SafeURL(data.VSCodeLink) }>Open in VS Code</a>
+		</div>
+		<div class="actions">
+			<form hx-post={ linkPath(ctx, "/w/"+data.Workspace.Name+"/start") } hx-target="#workspace-status" hx-swap="outerHTML" method="post">
+				<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+				<button type="submit" disabled?={ data.Workspace.Spec.Running }>
+					if failureReason(data.Workspace) != "" {
+						Retry
+					} else {
+						Start
+					}
+				</button>
+			</form>
+			<form hx-post={ linkPath(ctx, "/w/"+data.Workspace.Name+"/stop") } hx-target="#workspace-status" hx-swap="outerHTML" method="post">
+				<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+				<button type="submit" class="secondary" disabled?={ !data.Workspace.Spec.Running }>Stop</button>
+			</form>
+			@editOwnWorkspace(data)
+			@confirmOwnWorkspaceDelete(data.Workspace.Name, data.Session.CSRFToken)
+		</div>
+	</div>
+}
+
+// editOwnWorkspace lets the owner change their own workspace's resources and
+// env vars after creation. Storage is rendered locked - it is immutable,
+// CEL-enforced - so the form only ever submits resources and env.
+templ editOwnWorkspace(data WorkspacePageData) {
+	{{ id := "edit-ws-" + data.Workspace.Name }}
+	<button type="button" class="secondary" data-dialog-open={ id } aria-haspopup="dialog">Edit</button>
+	<dialog id={ id } class="panel-dialog edit-workspace-dialog" aria-labelledby={ id + "-title" }>
+		<h2 id={ id + "-title" }>Edit { data.Workspace.Name }</h2>
+		<form action={ linkPath(ctx, "/w/"+data.Workspace.Name+"/resources") } method="post" class="stack-form">
+			<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+			@resourceFields(data.EditResources, "Storage cannot be changed after creation.")
+			@envFields(data.Workspace.Spec.Env)
+			<div class="dialog-actions">
+				<button type="button" class="secondary" data-dialog-close={ id }>Cancel</button>
+				<button type="submit">Save</button>
+			</div>
+		</form>
+	</dialog>
+}
+
+// confirmOwnWorkspaceDelete is the self-service equivalent of
+// confirmWorkspaceDelete (admin_workspaces.templ) - same shape, same
+// defaults, same typed-name requirement - but posts to the owner's own
+// /w/{name}/delete route instead of an admin path, and redirects to Overview
+// rather than back to an admin table.
+templ confirmOwnWorkspaceDelete(name, csrfToken string) {
+	{{ id := "delete-own-ws-" + name }}
+	<button type="button" class="danger" data-dialog-open={ id } aria-haspopup="dialog">Delete</button>
+	<dialog id={ id } class="panel-dialog" aria-labelledby={ id + "-title" }>
+		<h2 id={ id + "-title" }>Delete workspace { name }?</h2>
+		<ul class="entry-list">
+			<li class="entry">The workspace and its pod are deleted immediately.</li>
+			<li class="entry">
+				Its home volume { workspaceClaimName(name) } is deleted too, unless you
+				untick the box below. Everything in the home directory goes with it.
+			</li>
+			<li class="entry">Stopping it instead frees the CPU, memory and GPU while keeping everything else.</li>
+		</ul>
+		<form action={ linkPath(ctx, "/w/"+name+"/delete") } method="post" class="stack-form">
+			<input type="hidden" name="csrf_token" value={ csrfToken }/>
+			<label class="checkbox">
+				<input type="checkbox" name="delete_volume" value="true" checked/>
+				Delete the home volume as well
+			</label>
+			<label for={ id + "-confirm" }>
+				<span class="confirm-prompt">
+					Remove persistent volume immediately, write <strong>{ name }</strong> to confirm
+				</span>
+				<input
+					id={ id + "-confirm" }
+					name="confirm_name"
+					autocomplete="off"
+					data-confirm-name={ name }
+					data-confirm-submit={ id + "-submit" }
+					aria-describedby={ id + "-hint" }
+				/>
+				<span class="hint" id={ id + "-hint" }>The deletion is refused unless this matches.</span>
+			</label>
+			<div class="dialog-actions">
+				<button type="button" class="secondary" data-dialog-close={ id }>Cancel</button>
+				<button type="submit" class="danger" id={ id + "-submit" }>Delete workspace { name }</button>
+			</div>
+		</form>
+	</dialog>
+}
+
+// Spec facts only. The conditions moved to the Events tab, where they sit
+// beside the cluster's own events - the two answer the same question ("why is
+// it doing that") and reading one without the other was half an answer.
+templ workspaceDetails(data WorkspacePageData) {
+	if data.Notice != "" {
+		<p class="notice" role="status">{ data.Notice }</p>
+	}
+	<dl class="profile-facts">
+		<dt>Image</dt>
+		<dd>{ data.Workspace.Spec.ImageRef.Name }</dd>
+		<dt>CPU</dt>
+		<dd>{ orDash(data.CPU) }</dd>
+		<dt>Memory</dt>
+		<dd>{ orDash(data.Memory) }</dd>
+		<dt>GPU</dt>
+		<dd>{ orDash(data.GPU) }</dd>
+		<dt>Storage</dt>
+		<dd>{ quantityString(data.Workspace.Spec.Storage) }</dd>
+	</dl>
+	if data.RestartRequired {
+		<p class="notice warning" role="status">
+			The workspace has been edited since it started. Stop and start it to
+			apply the change - a running pod cannot be altered in place.
+		</p>
+	}
+}
+
+// The Events tab. It polls like the logs tab and for the same reason: the
+// interesting moment is the one you are not looking at, and a five-second GET
+// is a smaller thing to secure than a second websocket.
+templ workspaceEvents(data WorkspacePageData) {
+	<div
+		class="log-view"
+		hx-get={ string(linkPath(ctx, "/w/"+data.Workspace.Name+"/events")) }
+		hx-trigger="load, every 5s"
+		hx-swap="innerHTML"
+	>
+		<pre class="code-block skeleton">Loading events…</pre>
+	</div>
+}
+
+// WorkspaceEvents is the fragment that tab swaps in.
+//
+// Conditions first, then the cluster's events. The conditions are what dwpk
+// itself decided; the events are what Kubernetes did about it. Read together
+// they explain a Pending workspace; read apart, neither does.
+templ WorkspaceEvents(data WorkspaceEventsData) {
+	<h2>Conditions</h2>
+	if len(data.Conditions) == 0 {
+		<p class="muted">The controller has not reported a condition yet.</p>
+	} else {
+		// A code block rather than a list: conditions are the machine's own
+		// words, they are what you paste into a bug report, and one per line is
+		// how every other tool prints them.
+		<pre class="code-block">{ conditionsBlock(data.Conditions) }</pre>
+	}
+	<h2>Events</h2>
+	if data.Message != "" {
+		<p class="muted">{ data.Message }</p>
+		if data.Detail != "" {
+			<pre class="code-block">{ data.Detail }</pre>
+		}
+	} else {
+		<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrollable">
+			<table class="admin-table">
+				<thead>
+					<tr>
+						<th>When</th>
+						<th>Type</th>
+						<th>Reason</th>
+						<th>Message</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, event := range data.Events {
+						<tr>
+							<td>{ event.When }</td>
+							<td>{ event.Type }</td>
+							<td>{ event.Reason }</td>
+							<td>{ event.Message }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	}
+}
+
+templ workspaceTerminal(data WorkspacePageData) {
+	if data.Workspace.Status.PodName == "" {
+		<div class="empty-state">
+			<p><strong>No pod to attach to.</strong></p>
+			<p class="muted">A terminal needs a running workspace. Start it above, then come back.</p>
+		</div>
+	} else {
+		@terminalSurface(data.Workspace.Name, true)
+	}
+}
+
+// terminalSurface is the terminal itself, used by the tab on the workspace page
+// and by the standalone window. One component, so the two can never drift into
+// different terminals.
+//
+// autostart is the difference between them. The standalone window IS the
+// terminal, so it connects on load. In a tab it waits to be opened: a session
+// is a real shell process in somebody's pod, and loading a workspace page to
+// read its logs should not start one.
+templ terminalSurface(name string, showPopout bool) {
+	<div class="terminal-shell" data-terminal-shell>
+		<div class="terminal-bar">
+			<span class="terminal-status status-chip status-busy" data-terminal-status data-workspace-name={ name }>Not connected</span>
+			<div class="terminal-bar-actions">
+				<button type="button" class="secondary" hidden data-terminal-reconnect data-workspace-name={ name }>Connect</button>
+				<button type="button" class="ghost" data-terminal-fullscreen data-workspace-name={ name }>Full screen</button>
+				if showPopout {
+					<a
+						class="button-link ghost"
+						href={ linkPath(ctx, "/w/"+name+"/terminal") }
+						target="_blank"
+						rel="noopener"
+						data-terminal-popout
+						data-workspace-name={ name }
+					>Open in new window</a>
+				}
+			</div>
+		</div>
+		if showPopout {
+			<div class="terminal-mount" data-terminal data-workspace-name={ name } role="application" aria-label={ "Terminal for " + name }></div>
+		} else {
+			<div class="terminal-mount" data-terminal data-terminal-autostart data-workspace-name={ name } role="application" aria-label={ "Terminal for " + name }></div>
+		}
+	</div>
+}
+
+// TerminalWindow is the chrome-less standalone page. Same component, same
+// websocket, no sidebar - so it can be dragged onto a second monitor.
+templ TerminalWindow(data WorkspacePageData) {
+	@terminalSurface(data.Workspace.Name, false)
+}
+
+// Logs poll rather than stream. A second websocket is a second thing to secure
+// for a tail that a three-second GET already delivers.
+//
+// "load" is safe here and is not on the status card, because this swaps
+// innerHTML: the element carrying the trigger survives the swap, so load fires
+// once. The status card swaps outerHTML and replaces itself, where a load
+// trigger would re-arm on every response and spin.
+templ workspaceLogs(data WorkspacePageData) {
+	<div
+		id="workspace-logs"
+		hx-get={ linkPath(ctx, "/w/"+data.Workspace.Name+"/logs") }
+		hx-trigger="load, every 5s"
+		hx-swap="innerHTML"
+	>
+		<div class="skeleton skeleton-block"></div>
+	</div>
+}
+
+// WorkspaceLogView is the polled log fragment, rendered on its own by the logs
+// handler. Every outcome is named: a blank box tells a reader nothing about
+// whether the workspace is quiet, stopped, or refusing them.
+templ WorkspaceLogView(data WorkspaceLogData) {
+	if data.Message != "" {
+		<div class="empty-state">
+			<p><strong>{ data.Message }</strong></p>
+			if data.Detail != "" {
+				<p class="muted">{ data.Detail }</p>
+			}
+		</div>
+	} else {
+		<pre class="terminal-output">{ data.Lines }</pre>
+	}
+}

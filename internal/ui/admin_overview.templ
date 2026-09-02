@@ -1,0 +1,103 @@
+package ui
+
+import "fmt"
+
+templ AdminOverviewPage(data AdminOverviewData) {
+	@pageHeader("Administration", "Everyone, every project, and what they are running.", nil)
+	if data.Notice != "" {
+		<p class="notice" role="status">{ data.Notice }</p>
+	}
+	<div class="summary-strip">
+		@overviewStat(fmt.Sprintf("%d", data.Users), "Users", "/admin/users")
+		@overviewStat(fmt.Sprintf("%d", data.Workspaces), "Workspaces", "/admin/workspaces")
+		@overviewStat(fmt.Sprintf("%d", data.Running), "Running", "")
+	</div>
+	if len(data.UserList) == 0 {
+		<div class="empty-state">
+			<h2>Nobody yet</h2>
+			<p>A UserSpace is what gives somebody a namespace and a quota.</p>
+			<a class="button-link" href={ linkPath(ctx, "/admin/users") }>Add a user</a>
+		</div>
+	} else {
+		<section class="panel">
+			<h2>People</h2>
+			<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrollable">
+				<table class="admin-table">
+					<thead>
+						<tr>
+							<th>User</th>
+							<th>Email</th>
+							<th>Role</th>
+							<th>Namespace</th>
+							<th>Workspaces</th>
+							<th>Status</th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, user := range data.UserList {
+							<tr>
+								<td><span class="ident">{ user.Name }</span></td>
+								<td>{ user.Owner }</td>
+								<td>{ user.Role }</td>
+								<td><span class="ident-muted">{ user.Namespace }</span></td>
+								<td class="numeric">{ fmt.Sprintf("%d", user.Workspaces) }</td>
+								<td>
+									if user.Disabled {
+										@statusChip("Disabled")
+									} else {
+										@statusChip("Ready")
+									}
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	}
+}
+
+templ overviewStat(value, label, href string) {
+	<div class="summary-stat">
+		<span class="summary-value">{ value }</span>
+		if href != "" {
+			<a class="summary-label" href={ linkPath(ctx, href) }>{ label }</a>
+		} else {
+			<span class="summary-label">{ label }</span>
+		}
+	</div>
+}
+
+
+templ overviewUserTable(users []UserSummary) {
+	<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrollable">
+		<table class="admin-table">
+			<thead>
+				<tr>
+					<th>User</th>
+					<th>Email</th>
+					<th>Role</th>
+					<th>Workspaces</th>
+					<th>Access</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, user := range users {
+					<tr>
+						<td><span class="ident">{ user.Name }</span></td>
+						<td>{ user.Owner }</td>
+						<td>{ user.Role }</td>
+						<td class="numeric">{ fmt.Sprintf("%d", user.Workspaces) }</td>
+						<td>
+							if user.Disabled {
+								@statusChip("Disabled")
+							} else {
+								@statusChip("Active")
+							}
+						</td>
+					</tr>
+				}
+			</tbody>
+		</table>
+	</div>
+}

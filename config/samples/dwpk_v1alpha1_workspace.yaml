@@ -1,0 +1,19 @@
+apiVersion: dwpk.devops-ia.io/v1alpha1
+kind: Workspace
+metadata:
+  labels:
+    app.kubernetes.io/name: dwpk
+    app.kubernetes.io/managed-by: kustomize
+  name: dev
+  namespace: dwpk-alice
+spec:
+  imageRef:
+    name: python-3-12
+  resources:
+    requests: { cpu: "500m", memory: "1Gi" }
+    limits: { cpu: "2", memory: "4Gi" }
+  storage: 20Gi
+  sshAuthorizedKeys:
+    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBERERERERERERERERERERERERERERERERERERERERER alice@laptop"
+  running: true
+  idleTimeout: 4h

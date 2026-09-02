@@ -1,0 +1,7 @@
+## Append samples of your project ##
+resources:
+- dwpk_v1alpha1_workspaceimage.yaml
+- dwpk_v1alpha1_userspace.yaml
+- dwpk_v1alpha1_workspace.yaml
+- dwpk_v1alpha1_imageregistry.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples

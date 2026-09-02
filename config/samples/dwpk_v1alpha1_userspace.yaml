@@ -1,0 +1,15 @@
+apiVersion: dwpk.devops-ia.io/v1alpha1
+kind: UserSpace
+metadata:
+  labels:
+    app.kubernetes.io/name: dwpk
+    app.kubernetes.io/managed-by: kustomize
+  name: alice
+spec:
+  owner: "alice@example.com"
+  quota:
+    cpu: "8"
+    memory: 32Gi
+    storage: 100Gi
+    workspaces: 1
+  networkPolicy: Isolated

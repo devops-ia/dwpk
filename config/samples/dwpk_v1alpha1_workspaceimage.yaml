@@ -1,0 +1,22 @@
+apiVersion: dwpk.devops-ia.io/v1alpha1
+kind: WorkspaceImage
+metadata:
+  labels:
+    app.kubernetes.io/name: dwpk
+    app.kubernetes.io/managed-by: kustomize
+  name: python-3-12
+spec:
+  displayName: "Python 3.12"
+  description: "Python 3.12 with poetry, ruff and the AWS CLI."
+  icon: "https://cdn.example.com/icons/python.svg"
+  tags: ["python", "backend"]
+  maintainer: "platform@example.com"
+  deprecated: false
+  image: "ghcr.io/devops-ia/dwpk/python:3.12"
+  imagePullPolicy: IfNotPresent
+  shell: /bin/bash
+  homePath: /home/dev
+  runAsUser: 1000
+  placement:
+    nodeSelector: { workload: worker }
+    tolerations: []

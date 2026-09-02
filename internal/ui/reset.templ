@@ -1,0 +1,56 @@
+package ui
+
+// The link is shown once, exactly like an API token or the initial admin
+// password. There is nowhere to look it up afterwards, so the page says so
+// before the reader navigates away and finds out.
+templ ResetLinkPage(data ResetLinkData) {
+	@pageHeader("Password reset", "", nil)
+	<section class="panel">
+		<h2>Send this to { data.Username }</h2>
+		<div class="notice" role="status">
+			<strong>Copy this now - it is not shown again.</strong>
+			<div class="command-row">
+				<code id="reset-link">{ data.Link }</code>
+				<button type="button" data-copy-target="reset-link">Copy</button>
+			</div>
+		</div>
+		<p class="hint">
+			The link works once and expires on { data.Expires }. Issuing another
+			link for the same person immediately invalidates this one.
+		</p>
+		<p class="hint">
+			dwpk does not send email. Deliver this however you already verify who
+			someone is - anyone holding the link can set the password.
+		</p>
+		<div class="actions">
+			<a class="button-link secondary" href={ linkPath(ctx, "/admin/users") }>Back to users</a>
+		</div>
+	</section>
+}
+
+// The page a reset link leads to. Unauthenticated by necessity: the person
+// using it is the one who cannot sign in.
+templ ResetPasswordPage(data ResetPasswordData) {
+	<section class="panel narrow">
+		<h1>Set a new password</h1>
+		if data.Error != "" {
+			<p class="error" role="alert">{ data.Error }</p>
+		}
+		if data.Valid {
+			<form action={ linkPath(ctx, "/reset") } method="post" class="stack-form">
+				<input type="hidden" name="token" value={ data.Token }/>
+				<label for="reset-password">
+					New password
+					<input id="reset-password" name="password" type="password" required autocomplete="new-password"/>
+				</label>
+				<label for="reset-confirm">
+					Confirm
+					<input id="reset-confirm" name="confirm" type="password" required autocomplete="new-password"/>
+				</label>
+				<button type="submit">Set password</button>
+			</form>
+		} else {
+			<a class="button-link" href={ linkPath(ctx, "/login") }>Back to sign in</a>
+		}
+	</section>
+}

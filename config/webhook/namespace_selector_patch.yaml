@@ -1,0 +1,21 @@
+# The webhook must never govern the namespace it runs in. Without this, a
+# cluster-wide restart can reach a state where no pod can be admitted because
+# no webhook is available to admit it, and nothing can start (SPEC §7.5).
+#
+# Matched by webhook name, not by index. controller-gen emits the webhooks in
+# alphabetical order, so a positional patch silently moves onto a different
+# webhook the moment one is added whose name sorts earlier - which is how the
+# dwpk-system protection came off the Workspace webhook when vuserspace landed.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-webhook-configuration
+webhooks:
+- name: vworkspace-v1alpha1.dwpk.devops-ia.io
+  namespaceSelector:
+    matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: NotIn
+        values:
+          - dwpk-system
+          - kube-system

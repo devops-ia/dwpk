@@ -1,0 +1,194 @@
+package ui
+
+templ AdminWorkspacesPage(data AdminWorkspacesData) {
+	@pageHeader(
+		"Workspaces",
+		"An administrator sees the cluster; everyone else sees their own.",
+		addWorkspaceAction(data),
+	)
+	<section class="panel">
+		if data.Notice != "" {
+			<p class="notice" role="status">{ data.Notice }</p>
+		}
+		@AdminWorkspacesTable(data)
+	</section>
+	if len(data.Targets) > 1 && len(data.Images) > 0 {
+		@addWorkspaceDialog(data)
+	}
+}
+
+templ addWorkspaceDialog(data AdminWorkspacesData) {
+	<dialog id="add-workspace-dialog" class="panel-dialog">
+		<form action={ linkPath(ctx, "/admin/workspaces") } method="post" class="stack-form">
+			<h2>Add workspace</h2>
+			<p class="hint">
+				The SSH key belongs to the person who will use the workspace, not to
+				you. Without theirs, they cannot reach it.
+			</p>
+			<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+			<label for="ws-namespace">
+				For
+				<select id="ws-namespace" name="namespace" required>
+					for _, target := range data.Targets {
+						<option value={ target.Namespace }>{ target.Owner } ({ target.Namespace })</option>
+					}
+				</select>
+			</label>
+			<label for="ws-name">
+				Name
+				<input id="ws-name" name="name" required placeholder="dev"/>
+			</label>
+			<label for="ws-image">
+				Image
+				<select id="ws-image" name="image" required>
+					for _, image := range data.Images {
+						<option value={ image.Name }>{ image.Name }</option>
+					}
+				</select>
+			</label>
+			@resourceFields(defaultResourceValues(), "")
+			@envFields(nil)
+			<label for="ws-key">
+				Their SSH public key
+				<input id="ws-key" name="ssh_public_key" required placeholder="ssh-ed25519 AAAA..."/>
+			</label>
+			<div class="dialog-actions">
+				<button type="button" class="secondary" data-dialog-close="add-workspace-dialog">Cancel</button>
+				<button type="submit">Create</button>
+			</div>
+		</form>
+	</dialog>
+}
+
+templ AdminWorkspacesTable(data AdminWorkspacesData) {
+	<div id="workspace-table">
+		if len(data.Rows) == 0 {
+			<div class="empty-state">
+				<p><strong>No workspaces.</strong></p>
+				<p class="muted">Pick an image from the catalog and the first one is a form away.</p>
+				<a class="button-link" href={ linkPath(ctx, "/catalog") }>Browse the catalog</a>
+			</div>
+		} else {
+			<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrollable">
+				<table class="admin-table">
+					<thead>
+						<tr>
+							<th>Workspace</th>
+							<th>Namespace</th>
+							<th>Image</th>
+							<th>CPU</th>
+							<th>Memory</th>
+							<th>GPU</th>
+							<th>Status</th>
+							<th><span class="visually-hidden">Actions</span></th>
+						</tr>
+					</thead>
+					<tbody>
+						for _, row := range data.Rows {
+							<tr>
+								<td><a class="ident" href={ linkPath(ctx, "/w/"+row.Name) }>{ row.Name }</a></td>
+								<td><span class="ident-muted">{ row.Namespace }</span></td>
+								<td>{ row.Image }</td>
+								<td>{ orDash(row.CPU) }</td>
+								<td>{ orDash(row.Memory) }</td>
+								<td>{ orDash(row.GPU) }</td>
+								<td>@statusChip(row.Status)</td>
+								<td class="row-actions">
+									<a class="button-link secondary" href={ linkPath(ctx, "/w/"+row.Name) }>Open</a>
+									@workspaceRunSwitch(row, data.Session.CSRFToken)
+									@confirmWorkspaceDelete(row, data.Session.CSRFToken)
+								</td>
+							</tr>
+						}
+					</tbody>
+				</table>
+			</div>
+		}
+	</div>
+}
+
+// Two ways in, because they are two different jobs. "New workspace" is the
+// ordinary route: pick an image from the catalog and fill in a form. "Add
+// workspace" is the dialog that also chooses whose namespace it lands in, which
+// only an administrator has any use for.
+templ addWorkspaceAction(data AdminWorkspacesData) {
+	if len(data.Images) == 0 {
+		<a class="button-link secondary" href={ linkPath(ctx, "/admin/catalog") }>Add a catalog entry first</a>
+	} else {
+		<a class="button-link" href={ linkPath(ctx, "/catalog") }>New workspace</a>
+		if len(data.Targets) > 1 {
+			<button type="button" class="secondary" data-dialog-open="add-workspace-dialog">Add workspace</button>
+		}
+	}
+}
+
+// One button, because a workspace is either running or it is not and offering
+// both is offering one that does nothing.
+templ workspaceRunSwitch(row AdminWorkspaceRow, csrfToken string) {
+	<form
+		action={ linkPath(ctx, "/admin/workspaces/"+row.Namespace+"/"+row.Name+"/"+runAction(row.Running)) }
+		method="post"
+		class="row-action"
+	>
+		<input type="hidden" name="csrf_token" value={ csrfToken }/>
+		if row.Running {
+			<button type="submit" class="secondary">Stop</button>
+		} else {
+			<button type="submit" class="secondary">Start</button>
+		}
+	</form>
+}
+
+// confirmWorkspaceDelete is the ordinary confirmation plus the two things that
+// make deleting a workspace different from deleting a row.
+//
+// The home volume goes with it BY DEFAULT. It did not before, because a
+// StatefulSet deliberately keeps a volumeClaimTemplate's PVC - that is what
+// makes stopping non-destructive. But somebody deleting a workspace almost
+// always means the data too, and the old behaviour left an invisible volume
+// costing money that only turned up in a bill. Untick to keep it.
+//
+// And the name has to be typed. A dialog you dismiss by pressing the rightmost
+// button is a dialog you dismiss without reading; typing "dev" is a second of
+// friction that only the person who meant it will spend. The server checks it
+// too - this is the reminder, not the guard.
+templ confirmWorkspaceDelete(row AdminWorkspaceRow, csrfToken string) {
+	{{ id := "delete-ws-" + row.Namespace + "-" + row.Name }}
+	<button type="button" class="danger row-action" data-dialog-open={ id } aria-haspopup="dialog">Delete</button>
+	<dialog id={ id } class="panel-dialog" aria-labelledby={ id + "-title" }>
+		<h2 id={ id + "-title" }>Delete workspace { row.Name }?</h2>
+		<ul class="entry-list">
+			<li class="entry">The workspace and its pod are deleted immediately.</li>
+			<li class="entry">
+				Its home volume { workspaceClaimName(row.Name) } is deleted too, unless you
+				untick the box below. Everything in the home directory goes with it.
+			</li>
+			<li class="entry">Stopping it instead frees the CPU, memory and GPU while keeping everything else.</li>
+		</ul>
+		<form action={ linkPath(ctx, "/admin/workspaces/"+row.Namespace+"/"+row.Name+"/delete") } method="post" class="stack-form">
+			<input type="hidden" name="csrf_token" value={ csrfToken }/>
+			<label class="checkbox">
+				<input type="checkbox" name="delete_volume" value="true" checked/>
+				Delete the home volume as well
+			</label>
+			<label for={ id + "-confirm" }>
+				<span class="confirm-prompt">
+					Remove persistent volume immediately, write <strong>{ row.Name }</strong> to confirm
+				</span>
+				<input
+					id={ id + "-confirm" }
+					name="confirm_name"
+					autocomplete="off"
+					data-confirm-name={ row.Name }
+					data-confirm-submit={ id + "-submit" }
+					aria-describedby={ id + "-hint" }
+				/>
+				<span class="hint" id={ id + "-hint" }>The deletion is refused unless this matches.</span>
+			</label>
+			<div class="dialog-actions">
+				<button type="button" class="secondary" data-dialog-close={ id }>Cancel</button>
+				<button type="submit" class="danger" id={ id + "-submit" }>Delete workspace { row.Name }</button>
+			</div>
+		</form>
+	</dialog>
+}

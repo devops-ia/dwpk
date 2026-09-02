@@ -1,0 +1,41 @@
+name: Pages
+
+# Builds the docs/ set with mkdocs-material and publishes it to the gh-pages
+# branch. GitHub Pages is then configured (once, in repo settings) to serve
+# that branch.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - docs/**
+      - mkdocs.yml
+      - README.md
+      - .github/workflows/github-pages.yml
+  workflow_dispatch: {}
+
+permissions: {}
+
+jobs:
+  deploy:
+    name: Build and publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3"
+
+      - name: Install mkdocs-material
+        run: pip install mkdocs-material
+
+      - name: Deploy to gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdocs gh-deploy --force

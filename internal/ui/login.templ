@@ -1,0 +1,68 @@
+package ui
+
+templ LoginPicker(options []ProviderOption, next string, localAuthEnabled bool, problem string) {
+	<section class="panel">
+		<h1>Sign in</h1>
+		if problem != "" {
+			<p class="error" role="alert">{ problem }</p>
+		}
+		if len(options) > 0 {
+			<form method="get" action={ linkPath(ctx, "/login") } class="provider-form">
+				<label for="provider">
+					Identity provider
+					<select id="provider" name="provider">
+						for _, option := range options {
+							<option value={ option.Name }>{ option.Label }</option>
+						}
+					</select>
+				</label>
+				if next != "" {
+					<input type="hidden" name={ loginRedirectParam } value={ next }/>
+				}
+				@rememberMe("remember-oauth")
+				<button type="submit">Continue</button>
+			</form>
+		}
+		if localAuthEnabled && len(options) > 0 {
+			<div class="local-login-divider">or</div>
+		}
+		if localAuthEnabled {
+			<form method="post" action={ linkPath(ctx, "/login/local") } class="local-login-form">
+				<label for="username">
+					Username
+					<input type="text" id="username" name="username" autocomplete="username" required/>
+				</label>
+				<label for="password">
+					Password
+					<input type="password" id="password" name="password" autocomplete="current-password" required/>
+				</label>
+				if next != "" {
+					<input type="hidden" name="next" value={ next }/>
+				}
+				@rememberMe("remember-local")
+				<button type="submit">Sign in</button>
+			</form>
+		}
+		if len(options) == 0 && !localAuthEnabled {
+			<p class="error">
+				No login method is configured. An administrator needs to set up an
+				OAuth2 provider or enable local authentication.
+			</p>
+		}
+		// The API reference needs no account, and this is the only place someone
+		// without one can be told it exists.
+		<p class="muted">
+			<a href={ linkPath(ctx, "/api/docs") }>API documentation</a>
+			{ " - readable without signing in." }
+		</p>
+	</section>
+}
+
+// rememberMe is shared by both sign-in forms. The id is a parameter because
+// the two forms render on the same page and an id must be unique.
+templ rememberMe(id string) {
+	<label class="checkbox" for={ id }>
+		<input type="checkbox" id={ id } name={ loginRememberParam } value="true"/>
+		Keep me signed in for 7 days
+	</label>
+}

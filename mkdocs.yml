@@ -1,0 +1,49 @@
+site_name: dwpk
+site_description: Development Workspace Platform for Kubernetes
+site_url: https://devops-ia.github.io/dwpk/
+repo_name: devops-ia/dwpk
+repo_url: https://github.com/devops-ia/dwpk
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: README.md
+  - Quick Start: QUICKSTART.md
+  - Architecture: ARCHITECTURE.md
+  - Installation: INSTALLATION.md
+  - Administration: ADMINISTRATION.md
+  - User guide: USER_GUIDE.md
+  - Gateway on AWS: GATEWAY_AWS.md
+  - API reference: API_REFERENCE.md
+  - Environment variables: ENVIRONMENT_VARIABLES.md
+  - Troubleshooting: TROUBLESHOOTING.md

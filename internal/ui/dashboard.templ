@@ -1,0 +1,117 @@
+package ui
+
+import "fmt"
+
+templ DashboardPage(data DashboardData) {
+	@pageHeader("Overview", "Your workspaces and what they are using.", nil)
+	@dashboardSummary(data)
+	if data.HasQuota {
+		<section class="panel">
+			<h2>Usage</h2>
+			<ul class="quota-bars">
+				@quotaBar("Workspaces", fmt.Sprintf("%d", data.Quota.WorkspaceCount), fmt.Sprintf("%d", data.Quota.WorkspaceLimit))
+				@quotaBar("CPU", data.Quota.CPUUsed, data.Quota.CPULimit)
+				@quotaBar("Memory", data.Quota.MemoryUsed, data.Quota.MemoryLimit)
+				@quotaBar("GPU", data.Quota.GPUUsed, data.Quota.GPULimit)
+				@quotaBar("Storage", data.Quota.StorageUsed, data.Quota.StorageLimit)
+			</ul>
+		</section>
+	}
+	<section>
+		<h2>Workspaces</h2>
+		if len(data.Cards) == 0 {
+			@dashboardEmpty(data)
+		} else {
+			<div class="workspace-grid">
+				for _, card := range data.Cards {
+					@workspaceCard(card, data.Session.CSRFToken)
+				}
+			</div>
+		}
+	</section>
+}
+
+templ dashboardSummary(data DashboardData) {
+	<div class="summary-strip">
+		<div class="summary-stat">
+			<span class="summary-value">{ fmt.Sprintf("%d", data.Running) }</span>
+			<span class="summary-label"><span class="status-chip status-ok"></span>Running</span>
+		</div>
+		<div class="summary-stat">
+			<span class="summary-value">{ fmt.Sprintf("%d", data.Stopped) }</span>
+			<span class="summary-label"><span class="status-chip status-idle"></span>Stopped</span>
+		</div>
+		if data.HasQuota {
+			<div class="summary-stat">
+				<span class="summary-value">{ data.Quota.CPUUsed } <span class="summary-of">/ { data.Quota.CPULimit }</span></span>
+				<span class="summary-label">CPU</span>
+			</div>
+			<div class="summary-stat">
+				<span class="summary-value">{ data.Quota.MemoryUsed } <span class="summary-of">/ { data.Quota.MemoryLimit }</span></span>
+				<span class="summary-label">Memory</span>
+			</div>
+			<div class="summary-stat">
+				<span class="summary-value">{ data.Quota.GPUUsed } <span class="summary-of">/ { data.Quota.GPULimit }</span></span>
+				<span class="summary-label">GPU</span>
+			</div>
+			<div class="summary-stat">
+				<span class="summary-value">{ data.Quota.StorageUsed } <span class="summary-of">/ { data.Quota.StorageLimit }</span></span>
+				<span class="summary-label">Storage</span>
+			</div>
+		}
+	</div>
+}
+
+// The empty state is the contents of the Workspaces section, not the page.
+//
+// It used to replace everything, on the reasoning that nobody needs a usage bar
+// reading 0 of 8. That was wrong in the one case it mattered: a person deciding
+// what to create wants to know what they are allowed to create, and the quota is
+// exactly that. So the numbers stay and the prompt moves inside.
+templ dashboardEmpty(data DashboardData) {
+	<div class="empty-state">
+		<h2>No workspaces yet</h2>
+		if data.ImageCount == 0 {
+			<p>
+				The catalog is empty, or none of its entries are offered to your
+				projects. An administrator adds entries under Administration → Catalog.
+			</p>
+		} else {
+			<p>Pick an image from the catalog and your first workspace is a form away.</p>
+			<a class="button-link" href={ linkPath(ctx, "/catalog") }>Browse the catalog</a>
+		}
+	</div>
+}
+
+templ workspaceCard(card WorkspaceCard, csrfToken string) {
+	<article class="workspace-card">
+		<div class="workspace-card-head">
+			<a class="workspace-card-name" href={ linkPath(ctx, "/w/"+card.Name) }>{ card.Name }</a>
+			@statusChip(card.Status)
+		</div>
+		<div class="workspace-card-meta">
+			<span class="ident">{ card.Image }</span>
+			if card.Resources != "" {
+				<span>{ card.Resources }</span>
+			}
+			if card.Uptime != "" {
+				<span>{ card.Uptime }</span>
+			}
+		</div>
+		<div class="workspace-card-actions">
+			if card.Running {
+				<a class="button-link secondary" href={ linkPath(ctx, "/w/"+card.Name) }>Open</a>
+				<form action={ linkPath(ctx, "/w/"+card.Name+"/stop") } method="post">
+					<input type="hidden" name="csrf_token" value={ csrfToken }/>
+					<button type="submit" class="ghost">Stop</button>
+				</form>
+			} else {
+				<form action={ linkPath(ctx, "/w/"+card.Name+"/start") } method="post">
+					<input type="hidden" name="csrf_token" value={ csrfToken }/>
+					<button type="submit">Start</button>
+				</form>
+				<a class="button-link ghost" href={ linkPath(ctx, "/w/"+card.Name) }>Details</a>
+			}
+		</div>
+	</article>
+}

@@ -1,0 +1,16 @@
+{
+  "name": "dwpk",
+  "version": "1.0.0",
+  "private": true,
+  "release": {
+    "branches": [
+      "main"
+    ],
+    "repositoryUrl": "https://github.com/devops-ia/dwpk.git",
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/github"
+    ]
+  }
+}

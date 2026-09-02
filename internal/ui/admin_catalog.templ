@@ -1,0 +1,229 @@
+package ui
+
+templ AdminCatalogPage(data AdminCatalogData) {
+	@pageHeader("Catalog", "The images people can build a workspace from.", addImageAction())
+	<section class="panel">
+		if data.Notice != "" {
+			<p class="notice" role="status">{ data.Notice }</p>
+		}
+		<p class="hint">
+			The entry name is its <code>metadata.name</code>, which workspaces
+			reference. It cannot be renamed - a rename is a delete and a recreate,
+			and every workspace pointing at the old name would break.
+		</p>
+		if data.Error != "" {
+			<p class="error">{ data.Error }</p>
+		}
+		@catalogAdminFilters(data)
+	</section>
+	<section class="catalog-admin-grid">
+		for _, row := range data.Rows {
+			@catalogEntry(row, data.Session.CSRFToken)
+		}
+	</section>
+	if len(data.Rows) == 0 {
+		<section class="panel">
+			<div class="empty-state">
+				if data.Text != "" || data.RegistryFilter != "" {
+					<p><strong>Nothing matches that.</strong></p>
+					<a class="button-link secondary" href={ linkPath(ctx, catalogAdminPath) }>Clear the filter</a>
+				} else {
+					<p><strong>The catalog is empty.</strong></p>
+					<p class="muted">Add an entry and it becomes available to build workspaces from.</p>
+				}
+			</div>
+		</section>
+	}
+	@addImageDialog(data)
+	@catalogTagList(data.Tags)
+}
+
+// catalogEntry is a <details> per entry rather than a table row: an entry has
+// eight editable fields including a textarea, which no table cell can hold
+// legibly, and a collapsed list stays scannable.
+templ catalogEntry(row CatalogEntryRow, csrfToken string) {
+	<details class="entry">
+		<summary>
+			if row.IconPath != "" {
+				<img src={ row.IconPath } alt={ row.Title + " icon" } class="card-icon"/>
+			}
+			<span class="entry-name">{ row.Name }</span>
+			<span class="muted">{ row.DisplayName }</span>
+			<span class="badge">{ row.Origin }</span>
+			if row.ManagedBy != "" {
+				<span class="badge">Synced from { row.ManagedBy }</span>
+			}
+			if row.Deprecated {
+				<span class="badge badge-warning">Deprecated</span>
+			}
+			if row.AllowRoot {
+				<span class="badge badge-warning">Root</span>
+			}
+			if row.DeprecationNotice != "" {
+				<span class="badge badge-warning">{ row.DeprecationNotice }</span>
+			}
+		</summary>
+		if row.ManagedBy != "" {
+			<p class="hint">
+				This entry is synced from { row.ManagedBy } and will be overwritten
+				on its next sync.
+			</p>
+		}
+		<form action={ linkPath(ctx, "/admin/catalog/"+row.Name+"/update") } method="post" class="stack-form">
+			<input type="hidden" name="csrf_token" value={ csrfToken }/>
+			<label for={ "image-" + row.Name }>
+				Image
+				<input id={ "image-" + row.Name } name="image" value={ row.Image } required/>
+				<span class="hint">Rolling this to a new tag is how an entry moves forward. Running workspaces keep their current image until they restart.</span>
+			</label>
+			<label for={ "display-" + row.Name }>
+				Display name
+				<input id={ "display-" + row.Name } name="displayName" value={ row.DisplayName } placeholder={ row.Name }/>
+				<span class="hint">Optional. Blank shows the entry name.</span>
+			</label>
+			<label for={ "description-" + row.Name }>
+				Description
+				<input id={ "description-" + row.Name } name="description" value={ row.Description }/>
+			</label>
+			<label for={ "tags-" + row.Name }>
+				Tags
+				<input id={ "tags-" + row.Name } name="tags" value={ row.Tags } placeholder="backend, gpu" list="catalog-tags"/>
+			</label>
+			<label for={ "icon-" + row.Name }>
+				Icon URL
+				<input id={ "icon-" + row.Name } name="icon" value={ row.Icon } placeholder="https://example.com/icon.svg"/>
+			</label>
+			<label for={ "pull-secret-" + row.Name }>
+				Image pull secret
+				<input id={ "pull-secret-" + row.Name } name="imagePullSecret" value={ row.ImagePullSecret } placeholder="ecr-pull"/>
+				<span class="hint">Optional. Names a Secret dwpk replicates into every user namespace - see Registries below.</span>
+			</label>
+			<label class="checkbox">
+				<input type="checkbox" name="deprecated" value="true" checked?={ row.Deprecated }/>
+				Deprecated - hidden from the catalog, existing workspaces keep running
+			</label>
+			<label for={ "deprecate-" + row.Name }>
+				Deprecate on
+				<input id={ "deprecate-" + row.Name } type="date" name="deprecateAt" value={ row.DeprecateAt }/>
+				<span class="hint">Optional. The card warns until this date, and the entry is deprecated from it. Clear the field to cancel.</span>
+			</label>
+			@allowRootField(row.AllowRoot)
+			<div class="dialog-actions">
+				<button type="submit">Save</button>
+			</div>
+		</form>
+		<div class="entry-delete">
+			@confirmDelete(
+				"delete-image-"+row.Name,
+				"catalog entry "+row.Name,
+				string(linkPath(ctx, "/admin/catalog/"+row.Name+"/delete")),
+				csrfToken,
+				[]string{
+					"The entry disappears from the catalog and no new workspace can be created from it.",
+					"Workspaces already running this image keep running. They will not be able to restart once the entry is gone.",
+					"Deprecating the entry instead hides it from the catalog while leaving it usable.",
+				},
+			)
+		</div>
+	</details>
+}
+
+templ addImageDialog(data AdminCatalogData) {
+	<dialog id="add-image-dialog" class="panel-dialog">
+		<form action={ linkPath(ctx, "/admin/catalog") } method="post" class="stack-form">
+			<h2>Add catalog entry</h2>
+			<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+			<label for="img-display">
+				Name
+				<input id="img-display" name="displayName" required placeholder="Python 3.12"/>
+				<span class="hint">The object name is derived from this, so "Python 3.12" becomes python-3-12.</span>
+			</label>
+			<label for="img-description">
+				Description
+				<input id="img-description" name="description"/>
+			</label>
+			<label for="img-image">
+				Container image
+				<input id="img-image" name="image" required placeholder="ghcr.io/example/python:3.12"/>
+			</label>
+			<label for="img-tags">
+				Tags
+				<input id="img-tags" name="tags" placeholder="backend, python" list="catalog-tags"/>
+				<span class="hint">Comma separated. Existing tags are suggested as you type.</span>
+			</label>
+			<label for="img-icon">
+				Icon URL
+				<input id="img-icon" name="icon" placeholder="https://example.com/icon.svg"/>
+			</label>
+			<label for="img-pull-secret">
+				Image pull secret
+				<input id="img-pull-secret" name="imagePullSecret" placeholder="ecr-pull"/>
+				<span class="hint">Optional. Names a Secret dwpk replicates into every user namespace - see Registries below.</span>
+			</label>
+			<label for="img-deprecate">
+				Deprecate on
+				<input id="img-deprecate" type="date" name="deprecateAt"/>
+				<span class="hint">Optional. Leave blank for an entry with no end date.</span>
+			</label>
+			@allowRootField(false)
+			<div class="dialog-actions">
+				<button type="button" class="secondary" data-dialog-close="add-image-dialog">Cancel</button>
+				<button type="submit">Create</button>
+			</div>
+		</form>
+	</dialog>
+}
+
+// catalogTagList is the suggestion source for every tag input on the screen.
+//
+// A native <datalist> rather than a scripted typeahead: the browser already
+// filters it as you type, it needs no JavaScript at all, and under a CSP that
+// forbids inline script that is one less thing to wire and one less thing to
+// break with it disabled.
+templ catalogTagList(tags []string) {
+	<datalist id="catalog-tags">
+		for _, tag := range tags {
+			<option value={ tag }></option>
+		}
+	</datalist>
+}
+
+// allowRootField is one control on two forms. The warning is next to the box
+// rather than in a hint below it, because the thing being agreed to is the
+// reason to read it at all.
+templ allowRootField(checked bool) {
+	<label class="checkbox">
+		<input type="checkbox" name="allowRoot" value="true" checked?={ checked }/>
+		Run as root - the workspace gets uid 0 and can install packages
+	</label>
+	<span class="hint">
+		Root inside the container only: it cannot reach the node, other pods, or
+		the kubelet. Administrators only - a project manager cannot change this.
+	</span>
+}
+
+templ addImageAction() {
+	<button type="button" data-dialog-open="add-image-dialog">Add entry</button>
+}
+
+// A plain GET form so it works with JavaScript off, exactly like the
+// user-facing catalog's. No htmx here: the whole screen is the list, so there is
+// no smaller thing to swap.
+templ catalogAdminFilters(data AdminCatalogData) {
+	<form method="get" action={ linkPath(ctx, catalogAdminPath) } class="filters">
+		<label>
+			Search
+			<input type="search" name="q" value={ data.Text } placeholder="python, gpu, backend"/>
+		</label>
+		<label>
+			Registry
+			<select name="registry">
+				<option value="">All</option>
+				for _, name := range data.RegistryNames {
+					<option value={ name } selected?={ name == data.RegistryFilter }>{ name }</option>
+				}
+			</select>
+		</label>
+		<button type="submit">Filter</button>
+	</form>
+}

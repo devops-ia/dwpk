@@ -1,0 +1,85 @@
+package ui
+
+import "fmt"
+
+templ AdminQuotaPage(data QuotaData) {
+	@pageHeader("Quota", "What each person is using against what they are allowed.", nil)
+	<section class="panel">
+		if data.Notice != "" {
+			<p class="notice" role="status">{ data.Notice }</p>
+		}
+		<p class="hint">
+			One maximum per resource, shown against what is currently used. The
+			floor is always zero. Changes take effect on the next reconcile.
+		</p>
+		<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrollable">
+		<table class="admin-table quota-table">
+			<thead>
+				<tr>
+					<th>User</th>
+					@quotaHeading("Workspaces")
+					@quotaHeading("CPU")
+					@quotaHeading("Memory")
+					@quotaHeading("GPU")
+					@quotaHeading("Storage")
+					<th><span class="visually-hidden">Actions</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, row := range data.Rows {
+					<tr>
+						{{ formID := "quota-" + row.Name }}
+						<td>
+							<form
+								id={ formID }
+								action={ linkPath(ctx, "/admin/quota/"+row.Name) }
+								method="post"
+							></form>
+							<input type="hidden" form={ formID } name="csrf_token" value={ data.Session.CSRFToken }/>
+							<span class="ident">{ row.Name }</span>
+						</td>
+						@quotaCell(formID, "workspaces", row.Name, fmt.Sprintf("%d", row.WorkspaceCount), fmt.Sprintf("%d", row.WorkspaceLimit))
+						@quotaCell(formID, "cpu", row.Name, row.CPUUsed, row.CPULimit)
+						@quotaCell(formID, "memory", row.Name, row.MemoryUsed, row.MemoryLimit)
+						@quotaCell(formID, "gpu", row.Name, row.GPUUsed, row.GPULimit)
+						@quotaCell(formID, "storage", row.Name, row.StorageUsed, row.StorageLimit)
+						<td><button type="submit" form={ formID }>Save</button></td>
+					</tr>
+				}
+			</tbody>
+		</table>
+		</div>
+	</section>
+}
+
+// quotaHeading names a resource column and, underneath, what the two boxes in
+// it are. The sub-label is in the header rather than beside every input because
+// there are five columns and the answer is the same in all of them.
+templ quotaHeading(label string) {
+	<th>
+		{ label }
+	</th>
+}
+
+// quotaCell is one resource for one person: the maximum, with measured usage
+// underneath.
+//
+// Usage is a caption rather than a second box, and that is not a half-measure.
+// It is computed from the live Workspace objects on every render - there is no
+// field in Kubernetes it could be written to, so an input would take a number
+// and throw it away on save. Text does not make that promise, and it keeps the
+// row inside the width of the window.
+templ quotaCell(formID, field, userSpace, used, limit string) {
+	<td class="quota-cell">
+		<div class="quota-bounds">
+			<input
+				form={ formID }
+				name={ field }
+				value={ limit }
+				class="quota-bound"
+				aria-label={ field + " maximum for " + userSpace }
+			/>
+		</div>
+		<span class="quota-used-note">{ used } used</span>
+	</td>
+}

@@ -1,0 +1,30 @@
+# Grants a platform administrator the ability to delete another person's home
+# volume when deleting their workspace.
+#
+# The owner's own Role covers this already, but only inside their namespace. An
+# administrator deleting somebody else's workspace acts in that person's
+# namespace, where they hold no Role at all - and the other admin roles cover
+# dwpk.devops-ia.io resources only, so no administrator could reach a
+# PersistentVolumeClaim from any namespace.
+#
+# No `create`: claims are made by the StatefulSet's volumeClaimTemplate, which
+# is the same reasoning already written into buildOwnerRole. An administrator
+# needs to remove storage, never to conjure it.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: dwpk
+    app.kubernetes.io/managed-by: kustomize
+  name: workspace-volume-admin-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - delete

@@ -1,0 +1,28 @@
+# Grants a platform administrator the ability to edit the cluster-wide
+# PlatformConfig, which is what the Administration → Global screen saves.
+#
+# The UI builds a Kubernetes client from the signed-in person's own token, so
+# without this ClusterRole every save is refused by RBAC no matter how the form
+# is submitted. It is bound to administrators by the controller, the same way
+# the userspace, workspace and workspaceimage admin roles are.
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: dwpk
+    app.kubernetes.io/managed-by: kustomize
+  name: platformconfig-admin-role
+rules:
+- apiGroups:
+  - dwpk.devops-ia.io
+  resources:
+  - platformconfigs
+  verbs:
+  - '*'
+- apiGroups:
+  - dwpk.devops-ia.io
+  resources:
+  - platformconfigs/status
+  verbs:
+  - get

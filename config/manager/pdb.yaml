@@ -1,0 +1,16 @@
+# One replica is the leader and the other is a warm spare, so voluntary
+# disruption may take one at a time and never both (SPEC §5.3).
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: controller-manager
+  namespace: system
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: dwpk
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/name: dwpk

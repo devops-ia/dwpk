@@ -314,7 +314,7 @@ func workspaceStateSettled(state string) bool {
 // it. "none" says what was meant, and leaves nothing to guess.
 func workspacePollTrigger(settled bool) string {
 	if settled {
-		return "none"
+		return noneLabel
 	}
 	return "every 3s"
 }
@@ -419,8 +419,8 @@ type ThemeOption struct {
 func themeOptions() []ThemeOption {
 	return []ThemeOption{
 		{Value: "system", Label: "Follow the viewer's system setting"},
-		{Value: "light", Label: "Light"},
-		{Value: "dark", Label: "Dark"},
+		{Value: themeLight, Label: "Light"},
+		{Value: themeDark, Label: "Dark"},
 	}
 }
 

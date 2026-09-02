@@ -26,6 +26,14 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+// jsonPatchAddOp is the JSON Patch "add" op - see the comment above
+// PatchWorkspaceResources for why "add" rather than "replace".
+const jsonPatchAddOp = "add"
+
+// specKey is the JSON Merge Patch top-level key every PatchX helper in this
+// file writes into: {"spec": ...}.
+const specKey = "spec"
+
 type RequestAPI interface {
 	ListWorkspaceImages(ctx context.Context) ([]dwpkv1alpha1.WorkspaceImage, error)
 	GetWorkspaceImage(ctx context.Context, name string) (*dwpkv1alpha1.WorkspaceImage, error)
@@ -102,8 +110,8 @@ func (f *ClientFactory) ForToken(token string) (RequestAPI, error) {
 	config.BearerTokenFile = ""
 	config.Username = ""
 	config.Password = ""
-	config.TLSClientConfig.CertFile = ""
-	config.TLSClientConfig.KeyFile = ""
+	config.CertFile = ""
+	config.KeyFile = ""
 
 	workspaceClient, err := ctrlclient.New(config, ctrlclient.Options{Scheme: f.scheme})
 	if err != nil {
@@ -640,8 +648,8 @@ func (a *requestAPI) PatchWorkspaceResources(
 // the "add, not replace or merge" shape is table-testable with no client.
 func workspaceResourcesPatch(resources corev1.ResourceRequirements, env []corev1.EnvVar) ([]byte, error) {
 	return json.Marshal([]jsonPatchOp{
-		{Op: "add", Path: "/spec/resources", Value: resources},
-		{Op: "add", Path: "/spec/env", Value: env},
+		{Op: jsonPatchAddOp, Path: "/spec/resources", Value: resources},
+		{Op: jsonPatchAddOp, Path: "/spec/env", Value: env},
 	})
 }
 
@@ -657,7 +665,7 @@ func (a *requestAPI) PatchUserSpaceKeys(ctx context.Context, name string, keys [
 	us := &dwpkv1alpha1.UserSpace{}
 	us.Name = name
 	body, err := json.Marshal(map[string]any{
-		"spec": map[string]any{"sshAuthorizedKeys": keys},
+		specKey: map[string]any{"sshAuthorizedKeys": keys},
 	})
 	if err != nil {
 		return fmt.Errorf("build key patch for %s: %w", name, err)
@@ -676,7 +684,7 @@ func (a *requestAPI) PatchUserSpaceOnboardingCompleted(ctx context.Context, name
 	us.Name = name
 	now := metav1.Now()
 	body, err := json.Marshal(map[string]any{
-		"spec": map[string]any{"onboardingCompletedAt": now},
+		specKey: map[string]any{"onboardingCompletedAt": now},
 	})
 	if err != nil {
 		return fmt.Errorf("build onboarding patch for %s: %w", name, err)
@@ -907,7 +915,7 @@ func (a *requestAPI) PatchPlatformConfig(ctx context.Context, update PlatformCon
 		spec["logo"] = update.Logo
 	}
 
-	body, err := json.Marshal(map[string]any{"spec": spec})
+	body, err := json.Marshal(map[string]any{specKey: spec})
 	if err != nil {
 		return fmt.Errorf("build PlatformConfig patch: %w", err)
 	}

@@ -7,6 +7,11 @@ import (
 
 var ecrHost = regexp.MustCompile(`^\d+\.dkr\.ecr\.[a-z0-9-]+\.amazonaws\.com$`)
 
+const (
+	originDockerHub = "Docker Hub"
+	originGoogle    = "Google"
+)
+
 // OriginOf names the cloud or registry an image reference belongs to, derived
 // from its host rather than stored - it works for a hand-created catalog
 // entry too, and it cannot drift from spec.image the way a separately stored
@@ -15,17 +20,17 @@ func OriginOf(image string) string {
 	host := hostOf(image)
 	switch {
 	case host == "":
-		return "Docker Hub"
+		return originDockerHub
 	case ecrHost.MatchString(host):
 		return "AWS"
 	case host == "gcr.io" || strings.HasSuffix(host, ".gcr.io") || strings.HasSuffix(host, "-docker.pkg.dev"):
-		return "Google"
+		return originGoogle
 	case host == "ghcr.io":
 		return "GitHub"
 	case host == "quay.io":
 		return "Quay"
 	case host == "docker.io" || host == "index.docker.io":
-		return "Docker Hub"
+		return originDockerHub
 	default:
 		return host
 	}

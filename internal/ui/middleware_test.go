@@ -246,7 +246,7 @@ func TestAPendingWizardBlocksNothing(t *testing.T) {
 
 	for _, path := range []string{"/", catalogPath, onboardingPath} {
 		recorder := httptest.NewRecorder()
-		server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, path, ""))
+		server.Handler().ServeHTTP(recorder, authedRequest(path, ""))
 		if recorder.Code == http.StatusFound {
 			t.Errorf("%s redirected to %q with the wizard unfinished", path, recorder.Header().Get("Location"))
 		}

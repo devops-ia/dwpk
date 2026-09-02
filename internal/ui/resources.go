@@ -26,12 +26,15 @@ type ResourceValues struct {
 	GPUResource string
 }
 
+// defaultMemoryLimit is the default workspace's memory limit.
+const defaultMemoryLimit = "4Gi"
+
 // defaultResourceValues is a small workspace: enough to run a shell and a
 // language server, with room to burst into a build.
 func defaultResourceValues() ResourceValues {
 	return ResourceValues{
 		CPU:         "2",
-		MemoryLimit: "4Gi",
+		MemoryLimit: defaultMemoryLimit,
 		Storage:     "10Gi",
 		GPU:         "0",
 		GPUResource: defaultGPUResourceName,

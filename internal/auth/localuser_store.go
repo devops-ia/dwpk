@@ -16,6 +16,12 @@ import (
 // can list them without needing a database.
 const LocalUserLabel = "dwpk.devops-ia.io/local-user"
 
+// labelValueTrue is the marker value for boolean-shaped labels such as
+// LocalUserLabel and ResetTokenLabel - Kubernetes labels are strings, so a
+// boolean label needs some string value, and every marker in this package
+// uses the same one.
+const labelValueTrue = "true"
+
 const (
 	localUserDataUsername = "username"
 	localUserDataHash     = "password-hash"
@@ -80,7 +86,7 @@ func (s *LocalUserStore) Create(ctx context.Context, username, plaintextPassword
 			Name:      LocalUserSecretName(username),
 			Namespace: s.namespace,
 			Labels: map[string]string{
-				LocalUserLabel: "true",
+				LocalUserLabel: labelValueTrue,
 			},
 		},
 		Type: corev1.SecretTypeOpaque,
@@ -188,7 +194,7 @@ func (s *LocalUserStore) List(ctx context.Context) ([]LocalUser, error) {
 	var secrets corev1.SecretList
 	if err := s.client.List(ctx, &secrets,
 		client.InNamespace(s.namespace),
-		client.MatchingLabels{LocalUserLabel: "true"},
+		client.MatchingLabels{LocalUserLabel: labelValueTrue},
 	); err != nil {
 		return nil, fmt.Errorf("list local user secrets: %w", err)
 	}
@@ -254,7 +260,7 @@ func (s *LocalUserStore) listLocalUsers(ctx context.Context) ([]*corev1.Secret, 
 	var secrets corev1.SecretList
 	if err := s.client.List(ctx, &secrets,
 		client.InNamespace(s.namespace),
-		client.MatchingLabels{LocalUserLabel: "true"},
+		client.MatchingLabels{LocalUserLabel: labelValueTrue},
 	); err != nil {
 		return nil, fmt.Errorf("list local user secrets: %w", err)
 	}
@@ -269,7 +275,7 @@ func (s *LocalUserStore) findByUsername(ctx context.Context, username string) (*
 	var secrets corev1.SecretList
 	if err := s.client.List(ctx, &secrets,
 		client.InNamespace(s.namespace),
-		client.MatchingLabels{LocalUserLabel: "true"},
+		client.MatchingLabels{LocalUserLabel: labelValueTrue},
 	); err != nil {
 		return nil, fmt.Errorf("list local user secrets: %w", err)
 	}

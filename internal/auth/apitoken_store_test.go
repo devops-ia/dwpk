@@ -11,6 +11,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+const (
+	testTokenStoreNamespace = "dwpk-system"
+	testUserNamespace       = "dwpk-alice"
+	testSessionAccount      = "session"
+)
+
 func newTestTokenStore(t *testing.T) *TokenStore {
 	t.Helper()
 	scheme := runtime.NewScheme()
@@ -18,7 +24,7 @@ func newTestTokenStore(t *testing.T) *TokenStore {
 		t.Fatalf("add corev1 to scheme: %v", err)
 	}
 	kubeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
-	return NewTokenStore(kubeClient, "dwpk-system")
+	return NewTokenStore(kubeClient, testTokenStoreNamespace)
 }
 
 func TestTokenStoreIssueAndLookup(t *testing.T) {
@@ -68,7 +74,7 @@ func TestTokenStoreListScopesByKindAndSubject(t *testing.T) {
 	store := newTestTokenStore(t)
 	ctx := context.Background()
 
-	if _, err := store.Issue(ctx, TokenGrant{Kind: TokenKindAdmin, SubjectNamespace: "dwpk-system", SubjectServiceAccount: "dwpk-admin"}); err != nil {
+	if _, err := store.Issue(ctx, TokenGrant{Kind: TokenKindAdmin, SubjectNamespace: testTokenStoreNamespace, SubjectServiceAccount: "dwpk-admin"}); err != nil {
 		t.Fatalf("Issue(admin) error = %v", err)
 	}
 	if _, err := store.Issue(ctx, TokenGrant{Kind: TokenKindApplication, SubjectNamespace: "user-alice", SubjectServiceAccount: "workspace-access"}); err != nil {
@@ -107,7 +113,7 @@ func TestTokenStoreHasAny(t *testing.T) {
 		t.Fatal("HasAny() = true before any admin token was issued")
 	}
 
-	if _, err := store.Issue(ctx, TokenGrant{Kind: TokenKindAdmin, SubjectNamespace: "dwpk-system", SubjectServiceAccount: "dwpk-admin"}); err != nil {
+	if _, err := store.Issue(ctx, TokenGrant{Kind: TokenKindAdmin, SubjectNamespace: testTokenStoreNamespace, SubjectServiceAccount: "dwpk-admin"}); err != nil {
 		t.Fatalf("Issue() error = %v", err)
 	}
 
@@ -153,8 +159,8 @@ func TestExpiredTokenIsRefusedAtLookup(t *testing.T) {
 
 	expired, err := store.Issue(ctx, TokenGrant{
 		Kind:                  TokenKindApplication,
-		SubjectNamespace:      "dwpk-alice",
-		SubjectServiceAccount: "session",
+		SubjectNamespace:      testUserNamespace,
+		SubjectServiceAccount: testSessionAccount,
 		ExpiresAt:             time.Now().Add(-time.Minute),
 	})
 	if err != nil {
@@ -166,8 +172,8 @@ func TestExpiredTokenIsRefusedAtLookup(t *testing.T) {
 
 	live, err := store.Issue(ctx, TokenGrant{
 		Kind:                  TokenKindApplication,
-		SubjectNamespace:      "dwpk-alice",
-		SubjectServiceAccount: "session",
+		SubjectNamespace:      testUserNamespace,
+		SubjectServiceAccount: testSessionAccount,
 		ExpiresAt:             time.Now().Add(time.Hour),
 	})
 	if err != nil {
@@ -186,8 +192,8 @@ func TestTokenWithNoExpiryNeverExpires(t *testing.T) {
 
 	record, err := store.Issue(ctx, TokenGrant{
 		Kind:                  TokenKindApplication,
-		SubjectNamespace:      "dwpk-alice",
-		SubjectServiceAccount: "session",
+		SubjectNamespace:      testUserNamespace,
+		SubjectServiceAccount: testSessionAccount,
 	})
 	if err != nil {
 		t.Fatalf("Issue() error = %v", err)

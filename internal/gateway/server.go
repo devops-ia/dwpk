@@ -210,7 +210,7 @@ func (s *Server) serve(ctx context.Context, netConn net.Conn, cfg *ssh.ServerCon
 
 func (s *Server) getWorkspace(ctx context.Context, key types.NamespacedName) (*dwpkv1alpha1.Workspace, error) {
 	workspace := &dwpkv1alpha1.Workspace{}
-	if err := s.WorkspaceClient.Get(ctx, ctrlclient.ObjectKey(key), workspace); err != nil {
+	if err := s.WorkspaceClient.Get(ctx, key, workspace); err != nil {
 		return nil, fmt.Errorf("get Workspace %s/%s: %w", key.Namespace, key.Name, err)
 	}
 	return workspace, nil
@@ -563,7 +563,7 @@ func (s *Server) directTCPIP(ctx context.Context, newChannel ssh.NewChannel, wor
 	// endpoint) that RBAC never gets a chance to see.
 	var upstream io.ReadWriteCloser
 	if isLoopbackForwardTarget(forward.DestAddr) {
-		upstream, err = s.portForward(ctx, target, forward.DestPort)
+		upstream, err = s.portForward(target, forward.DestPort)
 	} else {
 		err = fmt.Errorf("direct-tcpip to %q refused: only the workspace's own loopback is forwarded", forward.DestAddr)
 	}
@@ -590,7 +590,7 @@ func (s *Server) directTCPIP(ctx context.Context, newChannel ssh.NewChannel, wor
 
 var forwardID atomic.Int64
 
-func (s *Server) portForward(ctx context.Context, target podTarget, port uint32) (io.ReadWriteCloser, error) {
+func (s *Server) portForward(target podTarget, port uint32) (io.ReadWriteCloser, error) {
 	request := s.KubeClient.CoreV1().RESTClient().Post().
 		Resource("pods").
 		Namespace(target.Namespace).

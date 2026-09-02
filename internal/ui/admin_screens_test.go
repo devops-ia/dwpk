@@ -62,7 +62,7 @@ func TestAdminPeopleTableAlignsCellsWithHeaders(t *testing.T) {
 	})
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/admin/users", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/admin/users", csrf))
 	body := recorder.Body.String()
 
 	if recorder.Code != http.StatusOK {
@@ -98,7 +98,7 @@ func TestAdminWorkspacesScreenListsEveryNamespace(t *testing.T) {
 	})
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/admin/workspaces", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/admin/workspaces", csrf))
 	body := recorder.Body.String()
 
 	if recorder.Code != http.StatusOK {

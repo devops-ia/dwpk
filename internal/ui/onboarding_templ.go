@@ -5,8 +5,10 @@ package ui
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+)
 
 // OnboardingPage is the four-step first-login wizard: what to do, not a
 // gate on doing it. It reuses the tabs/panel machinery the rest of the UI

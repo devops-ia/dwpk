@@ -38,7 +38,7 @@ func TestEveryFragmentLinkNamesATabThatExists(t *testing.T) {
 
 	render := func(path string) string {
 		recorder := httptest.NewRecorder()
-		server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, path, csrf))
+		server.Handler().ServeHTTP(recorder, authedRequest(path, csrf))
 		if recorder.Code != http.StatusOK {
 			t.Fatalf("GET %s = %d, want 200", path, recorder.Code)
 		}
@@ -74,7 +74,7 @@ func TestBothPlacesAskingForAKeyLinkTheGuides(t *testing.T) {
 
 	for _, path := range []string{profilePage, onboardingPath} {
 		recorder := httptest.NewRecorder()
-		server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, path, csrf))
+		server.Handler().ServeHTTP(recorder, authedRequest(path, csrf))
 		body := recorder.Body.String()
 
 		for _, guide := range []string{

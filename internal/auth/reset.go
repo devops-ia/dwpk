@@ -92,7 +92,7 @@ func (s *ResetStore) Issue(ctx context.Context, username string) (string, time.T
 		ObjectMeta: metav1.ObjectMeta{
 			GenerateName: "dwpk-password-reset-",
 			Namespace:    s.namespace,
-			Labels:       map[string]string{ResetTokenLabel: "true"},
+			Labels:       map[string]string{ResetTokenLabel: labelValueTrue},
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
@@ -120,7 +120,7 @@ func (s *ResetStore) Redeem(ctx context.Context, plaintext string) (string, erro
 	var list corev1.SecretList
 	if err := s.client.List(ctx, &list,
 		client.InNamespace(s.namespace),
-		client.MatchingLabels{ResetTokenLabel: "true"}); err != nil {
+		client.MatchingLabels{ResetTokenLabel: labelValueTrue}); err != nil {
 		return "", fmt.Errorf("list reset tokens: %w", err)
 	}
 
@@ -166,7 +166,7 @@ func (s *ResetStore) clearStaleAndPrevious(ctx context.Context, username string)
 	var list corev1.SecretList
 	if err := s.client.List(ctx, &list,
 		client.InNamespace(s.namespace),
-		client.MatchingLabels{ResetTokenLabel: "true"}); err != nil {
+		client.MatchingLabels{ResetTokenLabel: labelValueTrue}); err != nil {
 		return fmt.Errorf("list reset tokens: %w", err)
 	}
 	for i := range list.Items {

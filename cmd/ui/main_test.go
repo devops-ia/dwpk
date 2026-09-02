@@ -3,6 +3,7 @@ package main
 import (
 	"log/slog"
 	"os"
+	"slices"
 	"testing"
 
 	"github.com/devops-ia/dwpk/internal/auth"
@@ -114,9 +115,15 @@ func clearListenEnv(t *testing.T) {
 		"DWPK__UI_BASE_URL",
 	} {
 		orig, had := os.LookupEnv(key)
-		os.Unsetenv(key)
+		if err := os.Unsetenv(key); err != nil {
+			t.Fatalf("Unsetenv(%s) error = %v", key, err)
+		}
 		if had {
-			t.Cleanup(func() { os.Setenv(key, orig) })
+			t.Cleanup(func() {
+				if err := os.Setenv(key, orig); err != nil {
+					t.Fatalf("Setenv(%s) error = %v", key, err)
+				}
+			})
 		}
 	}
 }
@@ -140,7 +147,7 @@ func TestGroupRoleMappingFromEnv(t *testing.T) {
 			t.Fatal("groupRoleMappingFromEnv() ok = false, want true")
 		}
 		wantAdmin := []string{"paas-admins", "platform-team"}
-		if len(mapping.AdminGroups) != len(wantAdmin) || mapping.AdminGroups[0] != wantAdmin[0] || mapping.AdminGroups[1] != wantAdmin[1] {
+		if !slices.Equal(mapping.AdminGroups, wantAdmin) {
 			t.Fatalf("AdminGroups = %v, want %v", mapping.AdminGroups, wantAdmin)
 		}
 		if len(mapping.UserGroups) != 1 || mapping.UserGroups[0] != "engineering" {

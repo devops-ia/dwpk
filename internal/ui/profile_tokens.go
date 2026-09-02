@@ -35,7 +35,7 @@ func tokenExpiryOptions() []TokenExpiryOption {
 		{Value: "30d", Label: "30 days"},
 		{Value: "7d", Label: "7 days"},
 		{Value: "90d", Label: "90 days"},
-		{Value: "never", Label: "No expiration"},
+		{Value: neverLabel, Label: "No expiration"},
 	}
 }
 
@@ -46,7 +46,7 @@ func tokenExpiryOptions() []TokenExpiryOption {
 // own.
 func tokenExpiryFrom(choice string) time.Time {
 	switch choice {
-	case "never":
+	case neverLabel:
 		return time.Time{}
 	case "7d":
 		return time.Now().Add(7 * 24 * time.Hour)

@@ -62,7 +62,7 @@ type RuntimeRow struct {
 func (rs RuntimeSettings) Rows() []RuntimeRow {
 	providers := strings.Join(rs.Providers, ", ")
 	if providers == "" {
-		providers = "none"
+		providers = noneLabel
 	}
 	rows := make([]RuntimeRow, 0, 13+4*len(rs.ProviderDetails))
 	rows = append(rows,

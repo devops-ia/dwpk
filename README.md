@@ -43,7 +43,7 @@ image itself never runs `sshd`.
 no JS build step. It runs OAuth2 login, then mints a short-lived Kubernetes token per request
 through `TokenRequest` instead of holding standing cluster permissions of its own.
 
-See [Architecture](https://devops-ia.github.io/dwpk/ARCHITECTURE/) for the complete design: the CRDs, the controller reconcile flows, the
+See [Architecture](https://devops-ia.github.io/dwpk/latest/ARCHITECTURE/) for the complete design: the CRDs, the controller reconcile flows, the
 security model, and the rationale behind each of them.
 
 ## Quick start
@@ -57,7 +57,7 @@ kubectl apply -k config/samples/              # a sample catalog entry, user, an
 ```
 
 The full walkthrough, including cert-manager setup and connecting over SSH, is in
-[Quick start](https://devops-ia.github.io/dwpk/QUICKSTART/).
+[Quick start](https://devops-ia.github.io/dwpk/latest/QUICKSTART/).
 
 ## Installing for real
 
@@ -76,7 +76,7 @@ are needed unless you're running your own build. If you're turning on the UI, cr
 client secret first and point `ui.oauth.existingSecret` at it. Client secrets belong in a
 Kubernetes `Secret`, not in `values.yaml`. The full install guide, including every provider's setup
 and the raw-manifest alternative, is at
-[Installation](https://devops-ia.github.io/dwpk/INSTALLATION/).
+[Installation](https://devops-ia.github.io/dwpk/latest/INSTALLATION/).
 
 ## Local development
 
@@ -94,13 +94,13 @@ this codebase mocks the Kubernetes API.
 
 | | |
 | --- | --- |
-| [Quick start](https://devops-ia.github.io/dwpk/QUICKSTART/) | Zero to a running workspace |
-| [Installation](https://devops-ia.github.io/dwpk/INSTALLATION/) | Helm and raw-manifest installs, OAuth2 setup |
-| [Architecture](https://devops-ia.github.io/dwpk/ARCHITECTURE/) | Components, CRDs, reconcile flows |
-| [Administration](https://devops-ia.github.io/dwpk/ADMINISTRATION/) | Managing the catalog and users |
-| [User guide](https://devops-ia.github.io/dwpk/USER_GUIDE/) | Using the marketplace UI |
-| [API reference](https://devops-ia.github.io/dwpk/API_REFERENCE/) | CRDs and the REST API |
-| [Troubleshooting](https://devops-ia.github.io/dwpk/TROUBLESHOOTING/) | Common failures and fixes |
+| [Quick start](https://devops-ia.github.io/dwpk/latest/QUICKSTART/) | Zero to a running workspace |
+| [Installation](https://devops-ia.github.io/dwpk/latest/INSTALLATION/) | Helm and raw-manifest installs, OAuth2 setup |
+| [Architecture](https://devops-ia.github.io/dwpk/latest/ARCHITECTURE/) | Components, CRDs, reconcile flows |
+| [Administration](https://devops-ia.github.io/dwpk/latest/ADMINISTRATION/) | Managing the catalog and users |
+| [User guide](https://devops-ia.github.io/dwpk/latest/USER_GUIDE/) | Using the marketplace UI |
+| [API reference](https://devops-ia.github.io/dwpk/latest/API_REFERENCE/) | CRDs and the REST API |
+| [Troubleshooting](https://devops-ia.github.io/dwpk/latest/TROUBLESHOOTING/) | Common failures and fixes |
 
 ## Contributing
 

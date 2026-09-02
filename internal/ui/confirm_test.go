@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -29,7 +28,7 @@ func TestDeleteIsAlwaysConfirmedFirst(t *testing.T) {
 	})
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/admin/workspaces", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/admin/workspaces", csrf))
 	body := recorder.Body.String()
 
 	if !strings.Contains(body, `data-dialog-open="delete-ws-dwpk-alice-dev"`) {
@@ -86,7 +85,7 @@ func TestWorkspacePageDeletePromptIsOneLine(t *testing.T) {
 	}}}
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/w/dev", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/w/dev", csrf))
 	body := recorder.Body.String()
 
 	const prompt = `<span class="confirm-prompt">Remove persistent volume immediately, ` +

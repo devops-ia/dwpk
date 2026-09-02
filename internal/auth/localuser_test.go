@@ -67,7 +67,7 @@ func TestVerifyAgainstDummyHashCostsAsMuchAsARealComparison(t *testing.T) {
 	const attempts = 5
 	measure := func(f func()) time.Duration {
 		start := time.Now()
-		for i := 0; i < attempts; i++ {
+		for range attempts {
 			f()
 		}
 		return time.Since(start)

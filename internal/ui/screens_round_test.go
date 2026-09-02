@@ -36,7 +36,7 @@ func screenBody(t *testing.T, path string, api fakeAPI) string {
 		token: testToken,
 	}
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, path, csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest(path, csrf))
 	if recorder.Code != http.StatusOK {
 		t.Fatalf("GET %s = %d: %s", path, recorder.Code, recorder.Body.String())
 	}
@@ -258,7 +258,7 @@ func TestGlobalSettingsListsTheProviderVariables(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/admin/settings", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/admin/settings", csrf))
 	body := recorder.Body.String()
 
 	for _, want := range []string{

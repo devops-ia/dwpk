@@ -22,7 +22,7 @@ func TestCreateFormWithoutAnImageSendsYouToTheCatalog(t *testing.T) {
 	server := newTestServer(t)
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/new", ""))
+	server.Handler().ServeHTTP(recorder, authedRequest("/new", ""))
 
 	if recorder.Code != http.StatusSeeOther {
 		t.Fatalf("GET /new with no image: status %d, want %d", recorder.Code, http.StatusSeeOther)

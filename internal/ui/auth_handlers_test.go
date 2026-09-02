@@ -25,7 +25,7 @@ func TestLoginFlowSuccess(t *testing.T) {
 		token:  &oauth2.Token{AccessToken: "provider-token"},
 		claims: auth.Claims{Email: "alice@example.com"},
 	}
-	resolver := &fakeOwnerResolver{userSpace: newUserSpace("alice", "alice@example.com", "dwpk-alice")}
+	resolver := &fakeOwnerResolver{userSpace: newUserSpace()}
 	minter := &fakeTokenMinter{
 		token:     "minted-token",
 		expiresAt: now.Add(30 * time.Minute),
@@ -142,7 +142,7 @@ func TestLoginFlowGroupClaimGrantsAdminRole(t *testing.T) {
 		token:  &oauth2.Token{AccessToken: "provider-token"},
 		claims: auth.Claims{Email: "alice@example.com", Groups: []string{"engineering", "paas-admins"}},
 	}
-	resolver := &fakeOwnerResolver{userSpace: newUserSpace("alice", "alice@example.com", "dwpk-alice")}
+	resolver := &fakeOwnerResolver{userSpace: newUserSpace()}
 
 	flow, err := NewLoginFlow(LoginFlowDeps{
 		Registry:      fakeRegistry{providers: map[auth.Name]auth.Provider{auth.ProviderEntraID: provider}},
@@ -191,7 +191,7 @@ func TestLoginFlowUnmatchedGroupsKeepUserSpaceRole(t *testing.T) {
 		token:  &oauth2.Token{AccessToken: "provider-token"},
 		claims: auth.Claims{Email: "alice@example.com", Groups: []string{"marketing"}},
 	}
-	userSpace := newUserSpace("alice", "alice@example.com", "dwpk-alice")
+	userSpace := newUserSpace()
 	userSpace.Spec.Role = dwpkv1alpha1.UserSpaceRoleAdmin
 	resolver := &fakeOwnerResolver{userSpace: userSpace}
 
@@ -317,7 +317,7 @@ func TestLoginFlowRejectsUnknownOrExpiredSessions(t *testing.T) {
 					Registry:      fakeRegistry{providers: map[auth.Name]auth.Provider{auth.ProviderGitHub: &fakeProvider{token: &oauth2.Token{AccessToken: "provider-token"}, claims: auth.Claims{Email: "alice@example.com"}}}},
 					Sessions:      sessions,
 					TokenMinter:   &fakeTokenMinter{token: "minted-token", expiresAt: time.Now().Add(time.Minute)},
-					OwnerResolver: &fakeOwnerResolver{userSpace: newUserSpace("alice", "alice@example.com", "dwpk-alice")},
+					OwnerResolver: &fakeOwnerResolver{userSpace: newUserSpace()},
 				})
 				if err != nil {
 					t.Fatalf("NewLoginFlow() error = %v", err)
@@ -398,7 +398,7 @@ func newTestLoginFlow(t *testing.T, fixture loginFlowFixture) *LoginFlow {
 		}}},
 		Sessions:      auth.NewSessionStore(time.Hour),
 		TokenMinter:   &fakeTokenMinter{token: "minted-token", expiresAt: time.Now().Add(time.Minute)},
-		OwnerResolver: &fakeOwnerResolver{userSpace: newUserSpace("alice", "alice@example.com", "dwpk-alice"), err: fixture.resolverErr},
+		OwnerResolver: &fakeOwnerResolver{userSpace: newUserSpace(), err: fixture.resolverErr},
 	})
 	if err != nil {
 		t.Fatalf("NewLoginFlow() error = %v", err)
@@ -506,7 +506,7 @@ func TestLoginFlowSessionIdentityCarriesOnboardingCompletedFromUserSpace(t *test
 
 	now := time.Now().UTC().Round(time.Second)
 	stamp := metav1.NewTime(now.Add(-time.Hour))
-	userSpace := newUserSpace("alice", "alice@example.com", "dwpk-alice")
+	userSpace := newUserSpace()
 	userSpace.Spec.OnboardingCompletedAt = &stamp
 
 	flow, err := NewLoginFlow(LoginFlowDeps{
@@ -551,7 +551,7 @@ func TestLoginFlowSessionIdentityDefaultsOnboardingIncomplete(t *testing.T) {
 		Registry:      fakeRegistry{providers: map[auth.Name]auth.Provider{auth.ProviderGitHub: &fakeProvider{token: &oauth2.Token{AccessToken: "provider-token"}, claims: auth.Claims{Email: "alice@example.com"}}}},
 		Sessions:      auth.NewSessionStore(time.Hour),
 		TokenMinter:   &fakeTokenMinter{token: "minted-token", expiresAt: now.Add(time.Hour)},
-		OwnerResolver: &fakeOwnerResolver{userSpace: newUserSpace("alice", "alice@example.com", "dwpk-alice")},
+		OwnerResolver: &fakeOwnerResolver{userSpace: newUserSpace()},
 		ChallengeTTL:  5 * time.Minute,
 		Now:           func() time.Time { return now },
 	})
@@ -589,11 +589,11 @@ func TestLoginFlowSessionIdentityDefaultsOnboardingIncomplete(t *testing.T) {
 	}
 }
 
-func newUserSpace(name, owner, namespace string) *dwpkv1alpha1.UserSpace {
+func newUserSpace() *dwpkv1alpha1.UserSpace {
 	return &dwpkv1alpha1.UserSpace{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec:       dwpkv1alpha1.UserSpaceSpec{Owner: owner},
-		Status:     dwpkv1alpha1.UserSpaceStatus{Namespace: namespace},
+		ObjectMeta: metav1.ObjectMeta{Name: "alice"},
+		Spec:       dwpkv1alpha1.UserSpaceSpec{Owner: "alice@example.com"},
+		Status:     dwpkv1alpha1.UserSpaceStatus{Namespace: "dwpk-alice"},
 	}
 }
 
@@ -634,7 +634,7 @@ func TestLoginFlowCompleteLocalLoginSuccess(t *testing.T) {
 	t.Parallel()
 
 	sessions := auth.NewSessionStore(time.Hour)
-	resolver := &fakeOwnerResolver{userSpace: newUserSpace("alice", "alice@example.com", "dwpk-alice")}
+	resolver := &fakeOwnerResolver{userSpace: newUserSpace()}
 	verifier := &fakeLocalUserVerifier{user: auth.LocalUser{Username: "alice", Owner: "alice@example.com"}}
 
 	flow, err := NewLoginFlow(LoginFlowDeps{

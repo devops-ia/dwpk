@@ -5,13 +5,15 @@ package ui
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
 
-import workspacepkg "github.com/devops-ia/dwpk/internal/workspace"
+	"context"
+	"fmt"
 
-import "context"
-import "fmt"
+	workspacepkg "github.com/devops-ia/dwpk/internal/workspace"
+)
 
 // Six panels was a long scroll where nothing related to anything above it.
 // Tabs reuse the component from the workspace page - same markup, same

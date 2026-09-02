@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"strings"
@@ -34,7 +33,7 @@ func TestCatalogFilterPostsToTheRouteThatServesTheCatalog(t *testing.T) {
 	}}
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, catalogPath, csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest(catalogPath, csrf))
 	body := recorder.Body.String()
 
 	target := regexp.MustCompile(`hx-get="([^"]*)"`).FindStringSubmatch(body)
@@ -48,7 +47,7 @@ func TestCatalogFilterPostsToTheRouteThatServesTheCatalog(t *testing.T) {
 	// And the target must actually return the grid rather than a whole page,
 	// or the swap replaces one screen with another.
 	fragment := httptest.NewRecorder()
-	request := authedRequest(http.MethodGet, target[1]+"?q=py", csrf)
+	request := authedRequest(target[1]+"?q=py", csrf)
 	request.Header.Set("HX-Request", boolTrue)
 	server.Handler().ServeHTTP(fragment, request)
 

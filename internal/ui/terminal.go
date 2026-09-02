@@ -83,24 +83,24 @@ func (s *Server) handleTerminalWebSocket(w http.ResponseWriter, r *http.Request)
 	if err != nil {
 		return
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	api, err := s.clientFactory.ForToken(session.Token)
 	if err != nil {
-		_ = conn.WriteJSON(terminalMessage{Type: "error", Data: err.Error()})
+		_ = conn.WriteJSON(terminalMessage{Type: errorField, Data: err.Error()})
 		return
 	}
 
 	ctx, cancel := context.WithCancel(r.Context())
 	defer cancel()
 	stdinReader, stdinWriter := io.Pipe()
-	defer stdinReader.Close()
-	defer stdinWriter.Close()
+	defer func() { _ = stdinReader.Close() }()
+	defer func() { _ = stdinWriter.Close() }()
 	sizes := newBrowserSizeQueue()
 	defer sizes.close()
 
 	stdout := &websocketWriter{conn: conn, kind: "output"}
-	stderr := &websocketWriter{conn: conn, kind: "error"}
+	stderr := &websocketWriter{conn: conn, kind: errorField}
 	errCh := make(chan error, 1)
 	go func() {
 		errCh <- api.OpenTerminal(ctx, TerminalStreamRequest{
@@ -134,13 +134,13 @@ func (s *Server) handleTerminalWebSocket(w http.ResponseWriter, r *http.Request)
 		select {
 		case err := <-errCh:
 			if err != nil {
-				_ = conn.WriteJSON(terminalMessage{Type: "error", Data: err.Error()})
+				_ = conn.WriteJSON(terminalMessage{Type: errorField, Data: err.Error()})
 			}
 			return
 		default:
 		}
 	}
 	if err := <-errCh; err != nil {
-		_ = conn.WriteJSON(terminalMessage{Type: "error", Data: err.Error()})
+		_ = conn.WriteJSON(terminalMessage{Type: errorField, Data: err.Error()})
 	}
 }

@@ -109,7 +109,7 @@ func workspaceCards(workspaces []dwpkv1alpha1.Workspace, now time.Time) []Worksp
 // already stamps a transition time there every time the state changes.
 func stateAge(ws dwpkv1alpha1.Workspace, now time.Time) string {
 	for _, condition := range ws.Status.Conditions {
-		if condition.Type != "Ready" || condition.LastTransitionTime.IsZero() {
+		if condition.Type != conditionTypeReady || condition.LastTransitionTime.IsZero() {
 			continue
 		}
 		return shortDuration(now.Sub(condition.LastTransitionTime.Time))

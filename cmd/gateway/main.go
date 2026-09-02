@@ -37,7 +37,8 @@ func main() {
 
 	opts := zap.Options{Development: true}
 	flag.StringVar(&listenAddress, "listen-address", ":2222", "The address the SSH gateway listens on.")
-	flag.StringVar(&hostKeyPath, "host-key-path", "hack/spike-ssh/hostkey.pem", "Path to the SSH host private key. Created if absent.")
+	flag.StringVar(&hostKeyPath, "host-key-path", "hack/spike-ssh/hostkey.pem",
+		"Path to the SSH host private key. Created if absent.")
 	// The "kubeconfig" flag itself is registered by crconfig's init(); reuse
 	// it instead of redefining, which would panic ("flag redefined").
 	opts.BindFlags(flag.CommandLine)

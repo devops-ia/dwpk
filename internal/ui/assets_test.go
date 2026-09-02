@@ -54,7 +54,7 @@ func TestOnlyTerminalPagesLoadXterm(t *testing.T) {
 
 	loads := func(path string) bool {
 		recorder := httptest.NewRecorder()
-		server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, path, csrf))
+		server.Handler().ServeHTTP(recorder, authedRequest(path, csrf))
 		return strings.Contains(recorder.Body.String(), "vendor/xterm.js")
 	}
 

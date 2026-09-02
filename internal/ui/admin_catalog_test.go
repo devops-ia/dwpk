@@ -129,7 +129,7 @@ func TestAdminCatalogFiltersByRegistry(t *testing.T) {
 	})
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/admin/catalog?registry=team-ecr", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/admin/catalog?registry=team-ecr", csrf))
 	body := recorder.Body.String()
 
 	if !strings.Contains(body, "team-ecr-python") {
@@ -191,7 +191,7 @@ func TestAdminCatalogRefusesANonAdmin(t *testing.T) {
 	server, csrf := newAdminScreenServer(t, fakeAPI{allowedVerbs: map[string]bool{}})
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/admin/catalog", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/admin/catalog", csrf))
 
 	if recorder.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want 403", recorder.Code)

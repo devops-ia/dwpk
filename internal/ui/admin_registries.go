@@ -12,6 +12,20 @@ import (
 	dwpkv1alpha1 "github.com/devops-ia/dwpk/api/v1alpha1"
 )
 
+// conditionTypeReady is the condition type name every reconciler in this
+// project writes for its "everything worked" state (§5.2).
+const conditionTypeReady = "Ready"
+
+// neverLabel is what a timestamp-shaped field shows before it has a value -
+// an expiry that never happens, or a sync that has not run yet.
+const neverLabel = "never"
+
+// noneLabel is the literal "none" - two unrelated meanings share it (an
+// empty provider list, and htmx's own hx-trigger="none" value), which is
+// exactly why it is one constant instead of two: the spelling has to match
+// htmx's own regardless of what a given call site means by it.
+const noneLabel = "none"
+
 // RegistryRow is one ImageRegistry as the admin screen edits it.
 type RegistryRow struct {
 	Name       string
@@ -83,15 +97,15 @@ func imageRegistryRows(registries []dwpkv1alpha1.ImageRegistry) []RegistryRow {
 	for i := range registries {
 		reg := &registries[i]
 		status, message := "Pending", ""
-		if ready := apimeta.FindStatusCondition(reg.Status.Conditions, "Ready"); ready != nil {
+		if ready := apimeta.FindStatusCondition(reg.Status.Conditions, conditionTypeReady); ready != nil {
 			message = ready.Message
 			if ready.Status == metav1.ConditionTrue {
-				status = "Ready"
+				status = conditionTypeReady
 			} else {
 				status = "Degraded"
 			}
 		}
-		lastSync := "never"
+		lastSync := neverLabel
 		if reg.Status.LastSyncTime != nil {
 			lastSync = reg.Status.LastSyncTime.Format("2006-01-02 15:04:05")
 		}

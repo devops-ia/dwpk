@@ -51,7 +51,7 @@ func TestAddGitSSHKeyStripsCRLFBeforeStoring(t *testing.T) {
 	var storedHost string
 	var storedKey []byte
 	server.clientFactory = fakeAPIClientFactory{api: fakeAPI{
-		userSpaces:      []dwpkv1alpha1.UserSpace{*newUserSpace("alice", "alice@example.com", "dwpk-alice")},
+		userSpaces:      []dwpkv1alpha1.UserSpace{*newUserSpace()},
 		putGitSSHHost:   &storedHost,
 		putGitSSHKeyPEM: &storedKey,
 	}}
@@ -81,7 +81,7 @@ func TestAddGitSSHKeyRefusesAPassphraseProtectedKey(t *testing.T) {
 	}
 	csrf, _ := server.csrfStore.Ensure("session-1")
 	server.clientFactory = fakeAPIClientFactory{api: fakeAPI{
-		userSpaces: []dwpkv1alpha1.UserSpace{*newUserSpace("alice", "alice@example.com", "dwpk-alice")},
+		userSpaces: []dwpkv1alpha1.UserSpace{*newUserSpace()},
 	}}
 
 	form := "host=github.com&key=" + url.QueryEscape("not a real key")

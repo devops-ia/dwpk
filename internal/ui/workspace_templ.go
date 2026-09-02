@@ -5,8 +5,10 @@ package ui
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
-import "github.com/a-h/templ"
-import templruntime "github.com/a-h/templ/runtime"
+import (
+	"github.com/a-h/templ"
+	templruntime "github.com/a-h/templ/runtime"
+)
 
 // The page is two panels, and the split matters. Only the status card polls;
 // the tabs, the terminal and the log view sit outside it and are never swapped.

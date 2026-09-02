@@ -77,7 +77,7 @@ func TestWorkspaceLogsNameEveryOutcome(t *testing.T) {
 			t.Parallel()
 			server, csrf := logServer(t, test.api)
 			recorder := httptest.NewRecorder()
-			server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/w/dev/logs", csrf))
+			server.Handler().ServeHTTP(recorder, authedRequest("/w/dev/logs", csrf))
 
 			if recorder.Code != http.StatusOK {
 				t.Fatalf("status = %d, want 200", recorder.Code)
@@ -97,7 +97,7 @@ func TestPolledFragmentExcludesTheTerminal(t *testing.T) {
 	server, csrf := logServer(t, fakeAPI{workspace: runningWorkspace()})
 
 	fragment := httptest.NewRecorder()
-	server.Handler().ServeHTTP(fragment, authedRequest(http.MethodGet, "/w/dev/status", csrf))
+	server.Handler().ServeHTTP(fragment, authedRequest("/w/dev/status", csrf))
 	body := fragment.Body.String()
 
 	if strings.Contains(body, "data-terminal ") {
@@ -112,7 +112,7 @@ func TestPolledFragmentExcludesTheTerminal(t *testing.T) {
 
 	// The full page must still contain both, or the split moved them nowhere.
 	page := httptest.NewRecorder()
-	server.Handler().ServeHTTP(page, authedRequest(http.MethodGet, "/w/dev", csrf))
+	server.Handler().ServeHTTP(page, authedRequest("/w/dev", csrf))
 	for _, want := range []string{"data-terminal", "data-tab-button", `id="workspace-status"`} {
 		if !strings.Contains(page.Body.String(), want) {
 			t.Fatalf("page missing %q", want)
@@ -134,7 +134,7 @@ func TestFailedWorkspaceShowsTheControllersReason(t *testing.T) {
 
 	server, csrf := logServer(t, fakeAPI{workspace: failed})
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/w/dev/status", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/w/dev/status", csrf))
 
 	body := recorder.Body.String()
 	if !strings.Contains(body, "ImagePullBackOff: back-off pulling image") {
@@ -224,7 +224,7 @@ func TestSettledStatusCardStatesItsTriggerExplicitly(t *testing.T) {
 	server, csrf := logServer(t, fakeAPI{workspace: runningWorkspace()})
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/w/dev/status", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/w/dev/status", csrf))
 
 	if !strings.Contains(recorder.Body.String(), `hx-trigger="none"`) {
 		t.Fatalf("a settled card leaves htmx to guess a trigger, and it guesses click: %s", recorder.Body.String())
@@ -240,7 +240,7 @@ func TestOnlyTheStandaloneTerminalAutostarts(t *testing.T) {
 	server, csrf := logServer(t, fakeAPI{workspace: runningWorkspace()})
 
 	tab := httptest.NewRecorder()
-	server.Handler().ServeHTTP(tab, authedRequest(http.MethodGet, "/w/dev", csrf))
+	server.Handler().ServeHTTP(tab, authedRequest("/w/dev", csrf))
 	if strings.Contains(tab.Body.String(), "data-terminal-autostart") {
 		t.Error("the workspace page starts a shell on load; it must wait to be opened")
 	}
@@ -255,7 +255,7 @@ func TestOnlyTheStandaloneTerminalAutostarts(t *testing.T) {
 	}
 
 	window := httptest.NewRecorder()
-	server.Handler().ServeHTTP(window, authedRequest(http.MethodGet, "/w/dev/terminal", csrf))
+	server.Handler().ServeHTTP(window, authedRequest("/w/dev/terminal", csrf))
 	if !strings.Contains(window.Body.String(), "data-terminal-autostart") {
 		t.Error("the standalone terminal window does not connect on load")
 	}

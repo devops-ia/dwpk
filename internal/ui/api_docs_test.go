@@ -193,7 +193,7 @@ func TestAPIDocsIsLinkedFromTheApplication(t *testing.T) {
 	server, csrf := logServer(t, fakeAPI{workspace: runningWorkspace()})
 
 	signedIn := httptest.NewRecorder()
-	server.Handler().ServeHTTP(signedIn, authedRequest(http.MethodGet, "/", csrf))
+	server.Handler().ServeHTTP(signedIn, authedRequest("/", csrf))
 	if !strings.Contains(signedIn.Body.String(), `href="/api/docs"`) {
 		t.Error("the sidebar does not link to the API reference")
 	}

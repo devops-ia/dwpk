@@ -70,7 +70,7 @@ func TestAdminPeopleScreenWorksWithLocalAuthDisabled(t *testing.T) {
 	})
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/admin/users", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/admin/users", csrf))
 	body := recorder.Body.String()
 
 	if recorder.Code != http.StatusOK {
@@ -92,7 +92,7 @@ func TestAdminPeopleScreenRefusesANonAdmin(t *testing.T) {
 	server, csrf := newAdminScreenServer(t, fakeAPI{allowedVerbs: map[string]bool{}})
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/admin/users", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/admin/users", csrf))
 
 	if recorder.Code != http.StatusForbidden {
 		t.Fatalf("status = %d, want 403", recorder.Code)

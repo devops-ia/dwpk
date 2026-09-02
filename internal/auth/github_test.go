@@ -12,6 +12,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const testGitHubAccessToken = "github-access-token"
+
 func TestGitHubProviderAuthURLAndExchange(t *testing.T) {
 	t.Parallel()
 
@@ -24,7 +26,7 @@ func TestGitHubProviderAuthURLAndExchange(t *testing.T) {
 			}
 			tokenCode.Store(r.Form.Get("code"))
 			writeJSON(t, w, map[string]any{
-				"access_token": "github-access-token",
+				"access_token": testGitHubAccessToken,
 				"token_type":   "bearer",
 			})
 		default:
@@ -62,8 +64,8 @@ func TestGitHubProviderAuthURLAndExchange(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Exchange() error = %v", err)
 	}
-	if tok.AccessToken != "github-access-token" {
-		t.Fatalf("Exchange() access token = %q, want %q", tok.AccessToken, "github-access-token")
+	if tok.AccessToken != testGitHubAccessToken {
+		t.Fatalf("Exchange() access token = %q, want %q", tok.AccessToken, testGitHubAccessToken)
 	}
 	if got, _ := tokenCode.Load().(string); got != "auth-code" {
 		t.Fatalf("posted code = %q, want %q", got, "auth-code")
@@ -107,7 +109,7 @@ func TestGitHubProviderClaims(t *testing.T) {
 		t.Fatalf("NewGitHubProvider() error = %v", err)
 	}
 
-	claims, err := provider.Claims(context.Background(), &oauth2.Token{AccessToken: "github-access-token"})
+	claims, err := provider.Claims(context.Background(), &oauth2.Token{AccessToken: testGitHubAccessToken})
 	if err != nil {
 		t.Fatalf("Claims() error = %v", err)
 	}

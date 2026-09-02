@@ -1,8 +1,13 @@
 name: Pages
 
-# Builds the docs/ set with mkdocs-material and publishes it through GitHub's
-# native Pages deployment (no gh-pages branch). Requires Settings -> Pages ->
-# Source = "GitHub Actions", set once in the repo.
+# Refreshes the CURRENT latest docs version's content on every docs change to
+# main - no new entry in the version dropdown, just an in-place update of
+# whatever "latest" already points to. A new version entry (tracking a dwpk
+# major.minor release) is cut by the "docs" job in github-release.yml
+# instead, not here.
+#
+# Requires Settings -> Pages -> Source = "Deploy from a branch: gh-pages",
+# since mike (the mkdocs-material version switcher) owns that branch itself.
 on:
   push:
     branches:
@@ -16,50 +21,51 @@ on:
 
 permissions: {}
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
-
 jobs:
-  build:
-    name: Build
+  deploy:
+    name: Refresh latest
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
         with:
           python-version: "3"
 
-      - name: Install mkdocs-material
-        run: pip install mkdocs-material
+      - name: Install mkdocs-material and mike
+        run: pip install mkdocs-material mike
 
-      - name: Build
-        run: mkdocs build --strict
+      - name: Resolve the version "latest" currently points to
+        id: resolve
+        run: |
+          # mike resolves the "gh-pages" ref literally (git show gh-pages:...),
+          # so this has to create a local branch by that exact name, not just
+          # populate FETCH_HEAD.
+          git fetch origin gh-pages:gh-pages --depth=1 2>/dev/null || true
+          version=$(mike list --json 2>/dev/null | python3 -c "
+          import json, sys
+          for entry in json.load(sys.stdin):
+              if 'latest' in entry.get('aliases', []):
+                  print(entry['version'])
+                  break
+          " || true)
+          if [ -z "$version" ]; then
+            echo "No existing 'latest' version on gh-pages yet - nothing to refresh. The first version is published by github-release.yml's docs job."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "version=$version" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Configure Pages
-        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
-        with:
-          path: site
-
-  deploy:
-    name: Deploy
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      - name: Deploy
+        if: steps.resolve.outputs.skip == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mike deploy --push --update-aliases "${{ steps.resolve.outputs.version }}" latest

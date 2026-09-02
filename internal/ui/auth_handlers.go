@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -83,10 +84,8 @@ func (m GroupRoleMapping) roleFor(groups []string) (string, bool) {
 
 func anyGroupMatches(groups, configured []string) bool {
 	for _, want := range configured {
-		for _, have := range groups {
-			if want == have {
-				return true
-			}
+		if slices.Contains(groups, want) {
+			return true
 		}
 	}
 	return false

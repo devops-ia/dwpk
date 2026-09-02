@@ -81,7 +81,7 @@ func TestAuthenticatedPageDoesNotCentre(t *testing.T) {
 	}
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/", csrf))
 
 	if strings.Contains(recorder.Body.String(), "auth-shell") {
 		t.Fatal("a signed-in page should not use the centred auth shell")
@@ -121,7 +121,7 @@ func TestSidebarMarksTheCurrentPage(t *testing.T) {
 	server, csrf := newAdminScreenServer(t, fakeAPI{})
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/admin/quota", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/admin/quota", csrf))
 	body := recorder.Body.String()
 
 	if recorder.Code != http.StatusOK {

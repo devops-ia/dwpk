@@ -111,7 +111,7 @@ jobs:
           ( cd dist && sha256sum "${out}.tar.gz" > "${out}.tar.gz.sha256" )
 
       - name: Attach to the release
-        uses: softprops/action-gh-release@aa4bd1f0ac4ce7e5c68a1baa6d8f5ff43f95a2a1 # v2.4.4
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: ${{ needs.version.outputs.version }}
           files: |
@@ -223,3 +223,44 @@ jobs:
           subject-name: ghcr.io/${{ github.repository_owner }}/${{ matrix.repo }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+  docs:
+    name: Publish versioned docs
+    needs: version
+    if: needs.version.outputs.published == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.version.outputs.version }}
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3"
+
+      - name: Install mkdocs-material and mike
+        run: pip install mkdocs-material mike
+
+      # mike's version identifier is major.minor, not the full patch version:
+      # a patch release (1.4.0 -> 1.4.1) redeploys the same "1.4" entry in
+      # place instead of adding a new one to the dropdown, which only a major
+      # or minor bump does.
+      - name: Deploy this version and move the "latest" alias
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # mike resolves the "gh-pages" ref literally (git show gh-pages:...)
+          # and needs it fetched to see - and not clobber - versions already
+          # deployed there. First-ever deploy: this fails harmlessly, and mike
+          # creates gh-pages from scratch.
+          git fetch origin gh-pages:gh-pages --depth=1 2>/dev/null || true
+          minor="${VERSION%.*}"
+          mike deploy --push --update-aliases "${minor}" latest
+          mike set-default --push latest

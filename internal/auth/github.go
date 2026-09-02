@@ -15,6 +15,7 @@ const (
 	defaultGitHubAuthorizeURL = "https://github.com/login/oauth/authorize"
 	defaultGitHubTokenURL     = "https://github.com/login/oauth/access_token"
 	defaultGitHubAPIURL       = "https://api.github.com"
+	defaultGitHubScope        = "user:email"
 )
 
 var (
@@ -152,7 +153,7 @@ func (p *githubProvider) get(ctx context.Context, accessToken, path string, dst 
 	if err != nil {
 		return fmt.Errorf("send request %s: %w", path, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("GET %s: unexpected status %s", path, resp.Status)
@@ -175,7 +176,7 @@ func (p *githubProvider) client() *http.Client {
 
 func githubScopes(scopes []string) []string {
 	if len(scopes) == 0 {
-		return []string{"user:email"}
+		return []string{defaultGitHubScope}
 	}
 
 	return append([]string(nil), scopes...)

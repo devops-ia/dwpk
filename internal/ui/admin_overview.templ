@@ -45,7 +45,7 @@ templ AdminOverviewPage(data AdminOverviewData) {
 									if user.Disabled {
 										@statusChip("Disabled")
 									} else {
-										@statusChip("Ready")
+										@statusChip(conditionTypeReady)
 									}
 								</td>
 							</tr>

@@ -20,7 +20,7 @@ var (
 	errOIDCEmailRequired     = errors.New("email claim required")
 )
 
-var defaultOIDCScopes = []string{"openid", "email"}
+var defaultOIDCScopes = []string{oidc.ScopeOpenID, "email"}
 
 type OIDCConfig struct {
 	IssuerURL    string

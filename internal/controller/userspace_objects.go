@@ -51,16 +51,19 @@ const (
 	serviceAccountKind      = "ServiceAccount"
 	clusterRoleBindingKind  = "ClusterRoleBinding"
 	getVerb                 = "get"
+	createVerb              = "create"
+	patchVerb               = "patch"
 	watchVerb               = "watch"
 	useVerb                 = "use"
 	workspaceImagesResource = "workspaceimages"
 	userSpaceLabel          = "dwpk.devops-ia.io/userspace"
+	labelValueTrue          = "true"
 )
 
 // Verbs the owner gets over their own Workspaces. Kept within the verbs the
 // manager itself holds: RBAC escalation prevention rejects a Role granting more.
 var (
-	workspaceOwnerVerbs = []string{"create", "delete", getVerb, "list", "patch", "update", watchVerb}
+	workspaceOwnerVerbs = []string{createVerb, "delete", getVerb, "list", patchVerb, "update", watchVerb}
 	readVerbs           = []string{getVerb, "list", watchVerb}
 )
 
@@ -246,7 +249,7 @@ func buildSessionServiceAccount(us *dwpkv1alpha1.UserSpace) *corev1.ServiceAccou
 // mints for.
 func buildReadOnlySessionServiceAccount(us *dwpkv1alpha1.UserSpace) *corev1.ServiceAccount {
 	return &corev1.ServiceAccount{
-		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "ServiceAccount"},
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: serviceAccountKind},
 		ObjectMeta: childMeta(us, workspace.ReadOnlySessionServiceAccountName),
 	}
 }
@@ -292,7 +295,7 @@ func buildReadOnlyRole(us *dwpkv1alpha1.UserSpace) *rbacv1.Role {
 			{
 				APIGroups: []string{""},
 				Resources: []string{"pods/exec"},
-				Verbs:     []string{"create"},
+				Verbs:     []string{createVerb},
 			},
 			{
 				APIGroups: []string{"", "events.k8s.io"},
@@ -369,7 +372,7 @@ func buildOwnerRole(us *dwpkv1alpha1.UserSpace) *rbacv1.Role {
 			{
 				APIGroups: []string{""},
 				Resources: []string{"pods/exec"},
-				Verbs:     []string{"create"},
+				Verbs:     []string{createVerb},
 			},
 			// Deleting a workspace can take its home volume with it, which the
 			// StatefulSet will not do: a volumeClaimTemplate's PVC deliberately
@@ -402,7 +405,7 @@ func buildOwnerRole(us *dwpkv1alpha1.UserSpace) *rbacv1.Role {
 			{
 				APIGroups: []string{""},
 				Resources: []string{"secrets"},
-				Verbs:     []string{"create", getVerb, "update", "patch", "delete"},
+				Verbs:     []string{createVerb, getVerb, "update", patchVerb, "delete"},
 			},
 		},
 	}
@@ -431,7 +434,7 @@ func buildOwnerClusterRole(us *dwpkv1alpha1.UserSpace) *rbacv1.ClusterRole {
 				APIGroups:     []string{dwpkGroup},
 				Resources:     []string{userSpacesResource},
 				ResourceNames: []string{us.Name},
-				Verbs:         []string{getVerb, watchVerb, "patch"},
+				Verbs:         []string{getVerb, watchVerb, patchVerb},
 			},
 			// `use` is the verb the create path and the catalog both check
 			// (SPEC §7.6). Without it the catalog renders empty for everyone but

@@ -55,7 +55,7 @@ func TestProfileShowsIdentityAndQuota(t *testing.T) {
 	server, csrf := newProfileServer(t, nil)
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/profile", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/profile", csrf))
 	body := recorder.Body.String()
 
 	if recorder.Code != http.StatusOK {
@@ -77,7 +77,7 @@ func TestProfileSettingsTabShowsThemeChoiceFromCookie(t *testing.T) {
 	t.Parallel()
 	server, csrf := newProfileServer(t, nil)
 
-	request := authedRequest(http.MethodGet, "/profile", csrf)
+	request := authedRequest("/profile", csrf)
 	request.AddCookie(&http.Cookie{Name: themeCookieName, Value: themeDark})
 	recorder := httptest.NewRecorder()
 	server.Handler().ServeHTTP(recorder, request)
@@ -108,7 +108,7 @@ func TestProfileSettingsTabDefaultsToSystemWithNoCookie(t *testing.T) {
 	server, csrf := newProfileServer(t, nil)
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/profile", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/profile", csrf))
 	body := recorder.Body.String()
 
 	if !strings.Contains(body, `<option value="system" selected>`) {
@@ -183,7 +183,7 @@ func TestProfileHidesThePasswordFormForAProviderLogin(t *testing.T) {
 	signInThroughProvider(server)
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/profile", csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest("/profile", csrf))
 	body := recorder.Body.String()
 
 	if recorder.Code != http.StatusOK {

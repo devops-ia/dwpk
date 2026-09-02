@@ -32,7 +32,7 @@ func TestCatalogShowsOnlyAuthorizedImages(t *testing.T) {
 		allowedImages: map[string]bool{"python": true, "gpu": false},
 	}}
 	recorder := httptest.NewRecorder()
-	request := authedRequest(http.MethodGet, "/catalog", csrf)
+	request := authedRequest("/catalog", csrf)
 	server.Handler().ServeHTTP(recorder, request)
 	body := recorder.Body.String()
 	if !strings.Contains(body, "Python") || strings.Contains(body, "GPU") {
@@ -69,7 +69,7 @@ func TestWorkspacePageContainsConnectionHelpers(t *testing.T) {
 		Status:     dwpkv1alpha1.WorkspaceStatus{State: dwpkv1alpha1.WorkspaceStateRunning},
 	}}}
 	recorder := httptest.NewRecorder()
-	request := authedRequest(http.MethodGet, "/w/dev", csrf)
+	request := authedRequest("/w/dev", csrf)
 	server.Handler().ServeHTTP(recorder, request)
 	body := recorder.Body.String()
 	if !strings.Contains(body, "ssh dev@dwpk.example.com") {
@@ -99,7 +99,7 @@ func TestWorkspacePageVSCodeLinkOpensAtHome(t *testing.T) {
 		}},
 	}}
 	recorder := httptest.NewRecorder()
-	request := authedRequest(http.MethodGet, "/w/dev", csrf)
+	request := authedRequest("/w/dev", csrf)
 	server.Handler().ServeHTTP(recorder, request)
 	body := recorder.Body.String()
 	if !strings.Contains(body, "vscode://vscode-remote/ssh-remote+dev@dwpk.example.com/home/dev") {
@@ -107,8 +107,8 @@ func TestWorkspacePageVSCodeLinkOpensAtHome(t *testing.T) {
 	}
 }
 
-func authedRequest(method, path, csrf string) *http.Request {
-	request := httptest.NewRequest(method, path, nil)
+func authedRequest(path, csrf string) *http.Request {
+	request := httptest.NewRequest(http.MethodGet, path, nil)
 	request.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "session-1"})
 	if csrf != "" {
 		request.Header.Set(csrfHeaderName, csrf)

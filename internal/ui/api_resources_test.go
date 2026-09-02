@@ -54,7 +54,7 @@ func TestAPIListWorkspacesScopesByRoleLikeTheScreens(t *testing.T) {
 				fakeAPI{workspaces: all})
 
 			recorder := httptest.NewRecorder()
-			server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, apiVersion+"/workspaces", ""))
+			server.Handler().ServeHTTP(recorder, authedRequest(apiVersion+"/workspaces", ""))
 
 			if recorder.Code != http.StatusOK {
 				t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
@@ -88,7 +88,7 @@ func TestAPIWorkspaceLogs(t *testing.T) {
 
 		recorder := httptest.NewRecorder()
 		server.Handler().ServeHTTP(recorder,
-			authedRequest(http.MethodGet, apiVersion+"/workspaces/dev/logs", ""))
+			authedRequest(apiVersion+"/workspaces/dev/logs", ""))
 
 		var got LogsResponse
 		if err := json.Unmarshal(recorder.Body.Bytes(), &got); err != nil {
@@ -108,7 +108,7 @@ func TestAPIWorkspaceLogs(t *testing.T) {
 
 		recorder := httptest.NewRecorder()
 		server.Handler().ServeHTTP(recorder,
-			authedRequest(http.MethodGet, apiVersion+"/workspaces/dev/logs", ""))
+			authedRequest(apiVersion+"/workspaces/dev/logs", ""))
 
 		if recorder.Code != http.StatusConflict {
 			t.Fatalf("status = %d, want 409: %s", recorder.Code, recorder.Body.String())
@@ -122,7 +122,7 @@ func TestAPIWorkspaceLogs(t *testing.T) {
 
 		recorder := httptest.NewRecorder()
 		server.Handler().ServeHTTP(recorder,
-			authedRequest(http.MethodGet, apiVersion+"/workspaces/dev/logs?tail=-5", ""))
+			authedRequest(apiVersion+"/workspaces/dev/logs?tail=-5", ""))
 
 		if recorder.Code != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400", recorder.Code)

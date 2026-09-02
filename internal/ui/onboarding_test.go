@@ -37,7 +37,7 @@ func TestOnboardingPageRendersAllFourSteps(t *testing.T) {
 	server, csrf := newOnboardingServer(t, nil)
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, onboardingPath, csrf))
+	server.Handler().ServeHTTP(recorder, authedRequest(onboardingPath, csrf))
 	body := recorder.Body.String()
 
 	if recorder.Code != http.StatusOK {
@@ -146,7 +146,7 @@ func TestOnboardingNeverLinksToTheCreateFormWithoutAnImage(t *testing.T) {
 	server := newTestServer(t)
 
 	recorder := httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/onboarding", ""))
+	server.Handler().ServeHTTP(recorder, authedRequest("/onboarding", ""))
 
 	parts := strings.Split(recorder.Body.String(), `class="button-link" href="`)[1:]
 	links := make([]string, 0, len(parts))
@@ -175,7 +175,7 @@ func TestTheSidebarOffersTheWizardOnlyWhileItIsUnfinished(t *testing.T) {
 
 	overview := func() string {
 		recorder := httptest.NewRecorder()
-		server.Handler().ServeHTTP(recorder, authedRequest(http.MethodGet, "/", ""))
+		server.Handler().ServeHTTP(recorder, authedRequest("/", ""))
 		return recorder.Body.String()
 	}
 

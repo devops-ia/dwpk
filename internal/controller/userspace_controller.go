@@ -177,7 +177,7 @@ func (r *UserSpaceReconciler) pullSecrets(ctx context.Context) ([]corev1.Secret,
 	list := &corev1.SecretList{}
 	if err := r.List(ctx, list,
 		client.InNamespace(r.PullSecretNamespace),
-		client.MatchingLabels{dwpkv1alpha1.PullSecretLabel: "true"},
+		client.MatchingLabels{dwpkv1alpha1.PullSecretLabel: labelValueTrue},
 	); err != nil {
 		return nil, fmt.Errorf("list pull Secrets in %s: %w", r.PullSecretNamespace, err)
 	}
@@ -194,7 +194,7 @@ func (r *UserSpaceReconciler) pullSecrets(ctx context.Context) ([]corev1.Secret,
 // per person; add an index if that stops being true.
 func (r *UserSpaceReconciler) userSpacesForPullSecretChange(ctx context.Context, obj client.Object) []reconcile.Request {
 	secret, ok := obj.(*corev1.Secret)
-	if !ok || secret.Namespace != r.PullSecretNamespace || secret.Labels[dwpkv1alpha1.PullSecretLabel] != "true" {
+	if !ok || secret.Namespace != r.PullSecretNamespace || secret.Labels[dwpkv1alpha1.PullSecretLabel] != labelValueTrue {
 		return nil
 	}
 	list := &dwpkv1alpha1.UserSpaceList{}
@@ -316,26 +316,26 @@ func hostPeer(ip string) networkingv1.NetworkPolicyPeer {
 
 func (r *UserSpaceReconciler) markReady(ctx context.Context, us *dwpkv1alpha1.UserSpace) error {
 	return r.patchStatus(ctx, us, dwpkv1alpha1.UserSpaceStateReady, metav1.Condition{
-		Type:    "Ready",
+		Type:    conditionReady,
 		Status:  metav1.ConditionTrue,
 		Reason:  "NamespaceProvisioned",
 		Message: "namespace, quota and role bindings are in place",
 	}, metav1.Condition{
-		Type:    "Degraded",
+		Type:    conditionDegraded,
 		Status:  metav1.ConditionFalse,
 		Reason:  "NamespaceProvisioned",
-		Message: "no reconcile errors",
+		Message: noReconcileErrors,
 	})
 }
 
 func (r *UserSpaceReconciler) markDegraded(ctx context.Context, us *dwpkv1alpha1.UserSpace, cause error) error {
 	return r.patchStatus(ctx, us, dwpkv1alpha1.UserSpaceStateFailed, metav1.Condition{
-		Type:    "Ready",
+		Type:    conditionReady,
 		Status:  metav1.ConditionFalse,
 		Reason:  "ProvisioningFailed",
 		Message: cause.Error(),
 	}, metav1.Condition{
-		Type:    "Degraded",
+		Type:    conditionDegraded,
 		Status:  metav1.ConditionTrue,
 		Reason:  "ProvisioningFailed",
 		Message: cause.Error(),

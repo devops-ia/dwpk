@@ -189,15 +189,15 @@ func (r *ImageRegistryReconciler) markReady(ctx context.Context, reg *dwpkv1alph
 		now := metav1.Now()
 		reg.Status.LastSyncTime = &now
 	}, metav1.Condition{
-		Type:    "Ready",
+		Type:    conditionReady,
 		Status:  metav1.ConditionTrue,
 		Reason:  "Synced",
 		Message: "registry synced",
 	}, metav1.Condition{
-		Type:    "Degraded",
+		Type:    conditionDegraded,
 		Status:  metav1.ConditionFalse,
 		Reason:  "Synced",
-		Message: "no reconcile errors",
+		Message: noReconcileErrors,
 	})
 }
 
@@ -206,12 +206,12 @@ func (r *ImageRegistryReconciler) markReady(ctx context.Context, reg *dwpkv1alph
 // value, so a failed sync does not erase what a previous one found.
 func (r *ImageRegistryReconciler) markDegraded(ctx context.Context, reg *dwpkv1alpha1.ImageRegistry, cause error) error {
 	return r.patchStatus(ctx, reg, func(*dwpkv1alpha1.ImageRegistry) {}, metav1.Condition{
-		Type:    "Ready",
+		Type:    conditionReady,
 		Status:  metav1.ConditionFalse,
 		Reason:  "SyncFailed",
 		Message: cause.Error(),
 	}, metav1.Condition{
-		Type:    "Degraded",
+		Type:    conditionDegraded,
 		Status:  metav1.ConditionTrue,
 		Reason:  "SyncFailed",
 		Message: cause.Error(),

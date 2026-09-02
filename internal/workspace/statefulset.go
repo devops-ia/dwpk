@@ -18,6 +18,7 @@ package workspace
 
 import (
 	"fmt"
+	"maps"
 	"strconv"
 	"strings"
 
@@ -98,9 +99,7 @@ func PodMeta(ws *dwpkv1alpha1.Workspace) (annotations, labels map[string]string)
 	labels = map[string]string{
 		MetricsEnabledLabel: strconv.FormatBool(ws.Spec.Observability.MetricsEnabled),
 	}
-	for k, v := range Selector(ws) {
-		labels[k] = v
-	}
+	maps.Copy(labels, Selector(ws))
 	return annotations, labels
 }
 
@@ -292,8 +291,8 @@ func applyPasswdFix(spec *corev1.PodSpec, img *dwpkv1alpha1.WorkspaceImage, uid 
 	})
 	container := &spec.Containers[0]
 	container.VolumeMounts = append(container.VolumeMounts,
-		corev1.VolumeMount{Name: passwdFixVolumeName, MountPath: "/etc/passwd", SubPath: "passwd", ReadOnly: true},
-		corev1.VolumeMount{Name: passwdFixVolumeName, MountPath: "/etc/group", SubPath: "group", ReadOnly: true},
+		corev1.VolumeMount{Name: passwdFixVolumeName, MountPath: etcPasswdPath, SubPath: "passwd", ReadOnly: true},
+		corev1.VolumeMount{Name: passwdFixVolumeName, MountPath: etcGroupPath, SubPath: "group", ReadOnly: true},
 	)
 }
 
@@ -301,6 +300,8 @@ const (
 	passwdFixContainerName = "fix-passwd"
 	passwdFixVolumeName    = "passwd-fix"
 	passwdFixMountPath     = "/dwpk-etc"
+	etcPasswdPath          = "/etc/passwd"
+	etcGroupPath           = "/etc/group"
 )
 
 // passwdFixScript runs as $0=fix-passwd $1=uid $2=home. grep -E anchors the
@@ -368,7 +369,7 @@ func applyExtras(
 			ReadOnly:  true,
 		})
 		container.Env = append(container.Env, corev1.EnvVar{
-			Name:  "GIT_SSH_COMMAND",
+			Name:  gitSSHCommandEnvVar,
 			Value: "ssh -F " + dwpkv1alpha1.GitSSHMountPath + "/config",
 		})
 		spec.Volumes = append(spec.Volumes, corev1.Volume{
@@ -395,3 +396,8 @@ func applyExtras(
 // gitSSHVolumeName is the pod-local volume name for the mounted git-ssh
 // Secret - distinct from HomeVolumeName, so the two can never collide.
 const gitSSHVolumeName = "git-ssh-keys"
+
+// gitSSHCommandEnvVar is the environment variable git itself reads to find
+// an alternate ssh command - this is how a workspace's git operations pick
+// up the per-host keys mounted at dwpkv1alpha1.GitSSHMountPath.
+const gitSSHCommandEnvVar = "GIT_SSH_COMMAND"

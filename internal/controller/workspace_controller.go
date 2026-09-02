@@ -39,11 +39,14 @@ import (
 	"github.com/devops-ia/dwpk/internal/workspace"
 )
 
-// Condition types on a Workspace (§5.2).
+// Condition types on a Workspace (§5.2). Reused by the UserSpace and
+// ImageRegistry reconcilers too - conditions across every reconciler in this
+// package share the same Ready/Degraded shape.
 const (
 	conditionReady         = "Ready"
 	conditionDegraded      = "Degraded"
 	conditionImageResolved = "ImageResolved"
+	noReconcileErrors      = "no reconcile errors"
 )
 
 // WorkspaceReconciler reconciles a Workspace object
@@ -327,7 +330,7 @@ func (r *WorkspaceReconciler) markObserved(
 			Type:    conditionDegraded,
 			Status:  metav1.ConditionFalse,
 			Reason:  "WorkloadApplied",
-			Message: "no reconcile errors",
+			Message: noReconcileErrors,
 		},
 	)
 }

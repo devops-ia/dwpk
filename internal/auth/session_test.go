@@ -93,12 +93,8 @@ func TestSessionStoreConcurrentAccess(t *testing.T) {
 	var wg sync.WaitGroup
 	errs := make(chan error, workers)
 
-	for i := range workers {
-		wg.Add(1)
-
-		go func(i int) {
-			defer wg.Done()
-
+	for range workers {
+		wg.Go(func() {
 			sessionID, err := store.Create(Claims{Email: "user@example.com"})
 			if err != nil {
 				errs <- err
@@ -121,7 +117,7 @@ func TestSessionStoreConcurrentAccess(t *testing.T) {
 			}
 
 			store.Delete(sessionID)
-		}(i)
+		})
 	}
 
 	wg.Wait()

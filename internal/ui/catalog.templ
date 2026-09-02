@@ -1,0 +1,142 @@
+package ui
+
+templ CatalogPage(data CatalogData) {
+	@pageHeader("Catalog", "Every image you are allowed to build a workspace from.", nil)
+	<section class="panel">
+		// A plain GET form, so it works with JavaScript off. The htmx attributes
+		// only make it live: same URL, same handler, smaller swap.
+		<form
+			method="get"
+			class="filters"
+			hx-get={ string(linkPath(ctx, catalogPath)) }
+			hx-target="#catalog-grid"
+			hx-swap="outerHTML"
+			hx-push-url="true"
+			hx-trigger="input changed delay:300ms from:find input, change from:find select, submit"
+		>
+			<label>Search<input type="search" name="q" value={ data.Text } placeholder="python, backend, gpu" list="catalog-tags"/></label>
+			<label>Tag
+				<select name="tag">
+					<option value="">All</option>
+					for _, tag := range data.Tags {
+						<option value={ tag } selected?={ tag == data.Tag }>{ tag }</option>
+					}
+				</select>
+			</label>
+			<label class="checkbox"><input type="checkbox" name="deprecated" value="1" checked?={ data.ShowDeprecated }/>Show deprecated</label>
+			<button type="submit">Filter</button>
+		</form>
+	</section>
+	@CatalogGrid(data)
+}
+
+templ CatalogGrid(data CatalogData) {
+	<section class="card-grid" id="catalog-grid">
+		for _, image := range data.Page.Items {
+			<article class="card">
+				<div class="card-header">
+					if image.IconPath != "" {
+						<img src={ image.IconPath } alt={ image.DisplayName + " icon" } class="card-icon"/>
+					}
+					<div>
+						<h2>{ image.DisplayName }</h2>
+						<p class="muted">{ image.Name }</p>
+					</div>
+					<span class="badge">{ image.Origin }</span>
+					if image.Deprecated {
+						<span class="badge badge-warning">Deprecated</span>
+					} else if image.DeprecationNotice != "" {
+						<span class="badge badge-warning">{ image.DeprecationNotice }</span>
+					}
+				</div>
+				<p>{ image.Description }</p>
+				<div class="tag-list">
+					for _, tag := range image.Tags {
+						<span class="tag">{ tag }</span>
+					}
+				</div>
+				<div class="card-actions">
+					<button type="button" class="secondary" data-dialog-open={ "image-" + image.Name }>Details</button>
+					<a class="button-link" href={ linkPath(ctx, "/new?image="+image.Name) }>Create workspace</a>
+				</div>
+				@catalogDetail(image)
+			</article>
+		}
+		if len(data.Page.Items) == 0 {
+			<div class="empty-state">
+				<h2>Nothing to show</h2>
+				if data.Text != "" || data.Tag != "" {
+					<p>No catalog entry matches that search.</p>
+					<a class="button-link" href={ linkPath(ctx, "/") }>Clear the filters</a>
+				} else {
+					<p>
+						The catalog is empty, or none of its entries are offered to your
+						projects. An administrator adds entries under Administration → Catalog.
+					</p>
+				}
+			</div>
+		}
+		@pageControlsWith(data.Page, catalogPath, data.Request, catalogPageSizes)
+	</section>
+	@catalogTagList(data.Tags)
+}
+
+// catalogDetail is the whole entry, read only.
+//
+// A <dialog> beside its card rather than a page: it keeps your place in a
+// filtered, paginated grid, and the browser supplies the focus trap, Esc and the
+// backdrop. It must live INSIDE #catalog-grid - that is the htmx swap unit, and
+// a dialog outside it is orphaned the moment somebody types in the filter.
+//
+// The opener is a <button>, not the <article>: a card is not focusable and not
+// keyboard-activatable, and burying the create link inside a clickable region
+// would nest an action in a trigger.
+templ catalogDetail(image ImageCard) {
+	<dialog id={ "image-" + image.Name } class="panel-dialog" aria-labelledby={ "image-" + image.Name + "-title" }>
+		<h2 id={ "image-" + image.Name + "-title" }>{ image.DisplayName }</h2>
+		<p class="muted"><span class="ident">{ image.Name }</span></p>
+		if image.Deprecated {
+			<p class="error" role="status">
+				This entry is deprecated. Existing workspaces keep running; no new
+				one can be created from it.
+			</p>
+		} else if image.DeprecationNotice != "" {
+			<p class="notice warning" role="status">
+				{ image.DeprecationNotice }. It can still be used until then.
+			</p>
+		}
+		if image.Description != "" {
+			<p>{ image.Description }</p>
+		}
+		<dl class="profile-facts">
+			<dt>Image</dt>
+			<dd><span class="ident">{ image.Image }</span></dd>
+			<dt>Pull policy</dt>
+			<dd>{ orDash(image.ImagePullPolicy) }</dd>
+			<dt>Shell</dt>
+			<dd>{ orDash(image.Shell) }</dd>
+			<dt>Home</dt>
+			<dd>{ orDash(image.HomePath) }</dd>
+			<dt>Runs as</dt>
+			<dd>{ image.RunAs }</dd>
+			<dt>Command</dt>
+			<dd>{ orDash(image.Command) }</dd>
+			<dt>Maintainer</dt>
+			<dd>{ orDash(image.Maintainer) }</dd>
+			if image.DeprecateAt != "" {
+				<dt>Deprecates on</dt>
+				<dd>{ image.DeprecateAt }</dd>
+			}
+			if image.Placement != "" {
+				<dt>Scheduling</dt>
+				<dd>{ image.Placement }</dd>
+			}
+		</dl>
+		<div class="dialog-actions">
+			<button type="button" class="secondary" data-dialog-close={ "image-" + image.Name }>Close</button>
+			if !image.Deprecated {
+				<a class="button-link" href={ linkPath(ctx, "/new?image="+image.Name) }>Create workspace</a>
+			}
+		</div>
+	</dialog>
+}

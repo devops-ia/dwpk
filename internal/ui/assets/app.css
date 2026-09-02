@@ -1,0 +1,2141 @@
+/*
+ * dwpk visual language.
+ *
+ * A developer tool, dark first. Depth is not drawn: there are no shadows
+ * anywhere. A surface is a surface because it is a shade lighter than the
+ * ground and carries a hairline; a control is a control because it carries a
+ * brighter edge. Colour is spent almost entirely on status - the primary
+ * button is an inversion, not a hue.
+ *
+ * TWO BORDER TOKENS, and the difference matters:
+ *   --dwpk-hairline  card edges, table rules, separators. Decorative. The
+ *                    surface change does the separating, so no contrast floor.
+ *   --dwpk-edge      inputs, selects, textareas, secondary and ghost buttons -
+ *                    anything whose boundary is the ONLY thing identifying it
+ *                    as a control. WCAG 1.4.11 wants 3:1 there, and with the
+ *                    shadows gone that border is carrying the whole affordance.
+ * A hairline dark enough to hit 3:1 stops being a hairline, which is why this
+ * is two tokens and not one.
+ *
+ * Identifiers - workspace names, image refs, endpoints, namespaces - are set
+ * in ui-monospace. Inter is named in the design direction but cannot be used:
+ * the CSP is default-src 'self', so no Google Fonts and no data: URI woff2.
+ * The system stack is the closest available neighbour.
+ *
+ * Every colour below is contrast-audited in both themes. Text is 4.5:1 or
+ * better against the surfaces it appears on; --dwpk-edge is 3:1 or better.
+ */
+
+:root {
+  --dwpk-ground: #ffffff;
+  --dwpk-bg: #fafafa;
+  --dwpk-inset: #f4f4f5;
+  --dwpk-ink: #09090b;
+  --dwpk-ink-muted: #52525b;
+
+  /* The primary action inverts rather than colouring. */
+  --dwpk-accent: #09090b;
+  --dwpk-on-accent: #fafafa;
+
+  --dwpk-success: #15803d;
+  --dwpk-danger: #b91c1c;
+  --dwpk-on-danger: #ffffff;
+  --dwpk-warning: #8f5606;
+  --dwpk-idle: #52525b;
+
+  --dwpk-hairline: #e4e4e7;
+  --dwpk-edge: #8b8b93;
+  /* Kept as an alias: ~30 rules name --dwpk-rim and they all mean a hairline. */
+  --dwpk-rim: var(--dwpk-hairline);
+
+  --dwpk-inset-shadow: inset 0 0 0 1px var(--dwpk-hairline);
+
+  --dwpk-radius-card: 8px;
+  --dwpk-radius-control: 6px;
+  --dwpk-radius-input: 6px;
+  --dwpk-radius-pill: 9999px;
+
+  --dwpk-space-1: 0.25rem;
+  --dwpk-space-2: 0.5rem;
+  --dwpk-space-3: 0.75rem;
+  --dwpk-space-4: 1rem;
+  --dwpk-space-5: 1.25rem;
+  --dwpk-space-6: 1.5rem;
+  --dwpk-space-8: 2rem;
+
+  --dwpk-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --dwpk-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --dwpk-motion-fast: 120ms;
+  --dwpk-motion-base: 200ms;
+  --dwpk-motion-slow: 320ms;
+  --dwpk-ease: cubic-bezier(0.2, 0, 0.2, 1);
+
+  --dwpk-opacity-disabled: 0.55;
+  --dwpk-focus-ring: 2px solid var(--dwpk-ink);
+  --dwpk-focus-offset: 2px;
+
+  /* The terminal is dark in both themes. A shell is a shell. */
+  --dwpk-terminal-bg: #09090b;
+  --dwpk-terminal-ink: #e4e4e7;
+
+  color-scheme: light;
+}
+
+/*
+ * Dark is the primary register, so it is the one the palette was designed
+ * against. The ground goes to near-black and surfaces rise out of it.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --dwpk-ground: #09090b;
+    --dwpk-bg: #121215;
+    --dwpk-inset: #1c1c20;
+    --dwpk-ink: #fafafa;
+    --dwpk-ink-muted: #a1a1aa;
+    --dwpk-accent: #fafafa;
+    --dwpk-on-accent: #09090b;
+    --dwpk-success: #4ade80;
+    --dwpk-danger: #f87171;
+    --dwpk-on-danger: #09090b;
+    --dwpk-warning: #fbbf24;
+    --dwpk-idle: #8b8b93;
+    --dwpk-hairline: #27272a;
+    --dwpk-edge: #6b6b75;
+    --dwpk-focus-ring: 2px solid var(--dwpk-ink);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --dwpk-ground: #09090b;
+  --dwpk-bg: #121215;
+  --dwpk-inset: #1c1c20;
+  --dwpk-ink: #fafafa;
+  --dwpk-ink-muted: #a1a1aa;
+  --dwpk-accent: #fafafa;
+  --dwpk-on-accent: #09090b;
+  --dwpk-success: #4ade80;
+  --dwpk-danger: #f87171;
+  --dwpk-on-danger: #09090b;
+  --dwpk-warning: #fbbf24;
+  --dwpk-idle: #8b8b93;
+  --dwpk-hairline: #27272a;
+  --dwpk-edge: #6b6b75;
+  --dwpk-focus-ring: 2px solid var(--dwpk-ink);
+  color-scheme: dark;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--dwpk-ground);
+  color: var(--dwpk-ink);
+  font-family: var(--dwpk-font);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+h1,
+h2 {
+  margin: 0 0 var(--dwpk-space-4);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+h2 {
+  font-size: 1.125rem;
+}
+
+a {
+  color: var(--dwpk-accent);
+  font-weight: 500;
+}
+
+/* Solid, never a glow: a soft shadow cannot serve as a focus indicator. */
+:focus-visible {
+  outline: var(--dwpk-focus-ring);
+  outline-offset: var(--dwpk-focus-offset);
+}
+
+/* ---- Topbar ------------------------------------------------------------ */
+
+/*
+ * The header is the same clay as the page, raised off it. Nothing inverts -
+ * a second background colour would break the single-surface metaphor the whole
+ * style rests on.
+ */
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dwpk-space-4);
+  padding: var(--dwpk-space-4) var(--dwpk-space-6);
+  background: var(--dwpk-bg);
+  color: var(--dwpk-ink);
+  border-bottom: 1px solid var(--dwpk-hairline);
+  position: relative;
+  z-index: 1;
+}
+
+.brand {
+  font-weight: 600;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+  color: var(--dwpk-ink);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dwpk-space-3);
+}
+
+/* A small filled square: the mark, at the size of a favicon. */
+.brand::before {
+  content: "";
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--dwpk-radius-control);
+  background: var(--dwpk-accent);
+}
+
+.nav-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-2);
+  margin-right: auto;
+}
+
+.nav-links a {
+  color: var(--dwpk-ink-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: var(--dwpk-space-2) var(--dwpk-space-3);
+  border-radius: var(--dwpk-radius-input);
+}
+
+/* Hovering tints the link. */
+.nav-links a:hover,
+.nav-links a:focus-visible {
+  color: var(--dwpk-ink);
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--dwpk-space-3);
+}
+
+.theme-toggle {
+  background: var(--dwpk-bg);
+  color: var(--dwpk-ink);
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border-radius: var(--dwpk-radius-pill);
+  border: 1px solid var(--dwpk-rim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*
+ * The disc inside is raised in light mode and inset in dark, so the control
+ * shows you the two states it moves between rather than naming them.
+ */
+.theme-toggle::before {
+  content: "";
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: var(--dwpk-radius-pill);
+  background: var(--dwpk-bg);
+  transition: box-shadow var(--dwpk-motion-base) var(--dwpk-ease);
+}
+
+.theme-toggle[aria-pressed="true"]::before {
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+/*
+ * aria-pressed only reflects an explicit choice, so a viewer on a dark OS who
+ * has never touched the toggle would otherwise see the light-mode glyph while
+ * looking at a dark page. Match the theme actually in effect.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle::before {
+    box-shadow: var(--dwpk-inset-shadow);
+  }
+}
+
+/* ---- Page shell -------------------------------------------------------- */
+
+.page {
+  display: grid;
+  gap: var(--dwpk-space-6);
+  padding: var(--dwpk-space-8) var(--dwpk-space-6);
+  max-width: 78rem;
+  margin-inline: auto;
+}
+
+.auth-shell {
+  min-height: calc(100vh - 6rem);
+  display: grid;
+  place-items: center;
+  padding: var(--dwpk-space-6);
+  max-width: none;
+}
+
+.auth-shell .panel {
+  width: min(26rem, 100%);
+  margin: 0;
+}
+
+.panel {
+  background: var(--dwpk-bg);
+  border-radius: var(--dwpk-radius-card);
+  border: 1px solid var(--dwpk-rim);
+  padding: var(--dwpk-space-6);
+}
+
+.narrow {
+  max-width: 42rem;
+  margin-inline: auto;
+}
+
+/* ---- Controls ---------------------------------------------------------- */
+
+/*
+ * A filled control on a hairline edge. The press is a darkening rather than a
+ * movement: a button that shifts under the pointer is a button you can miss.
+ */
+button,
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--dwpk-space-2);
+  min-height: 2.75rem;
+  padding: var(--dwpk-space-2) var(--dwpk-space-6);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  text-decoration: none;
+  cursor: pointer;
+  color: var(--dwpk-on-accent);
+  background: var(--dwpk-accent);
+  border: 1px solid var(--dwpk-hairline);
+  border-radius: var(--dwpk-radius-control);
+  transition:
+    box-shadow var(--dwpk-motion-base) var(--dwpk-ease),
+    color var(--dwpk-motion-fast) var(--dwpk-ease);
+}
+
+button:active,
+.button-link:active {
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+/* Flat means unpressable. Nothing to push into. */
+button[disabled],
+textarea[disabled] {
+  color: var(--dwpk-ink-muted);
+  background: var(--dwpk-bg);
+  box-shadow: none;
+  opacity: var(--dwpk-opacity-disabled);
+  cursor: not-allowed;
+}
+
+.button-link.secondary,
+button.secondary,
+.tab-button {
+  background: var(--dwpk-bg);
+  color: var(--dwpk-ink);
+  border-color: var(--dwpk-edge);
+}
+
+.button-link.danger,
+button.danger {
+  background: var(--dwpk-danger);
+  color: var(--dwpk-on-danger);
+}
+
+/* Inputs are holes in the surface - the canonical concave state. */
+/* A field is a white surface with an edge, not a recess. The border is the
+   whole affordance, so it is a real border rather than a ring: a browser that
+   drops box-shadow still shows an input. */
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--dwpk-ink);
+  background: var(--dwpk-bg);
+  border: 1px solid var(--dwpk-edge);
+  border-radius: var(--dwpk-radius-input);
+  padding: var(--dwpk-space-3) var(--dwpk-space-4);
+  min-height: 2.75rem;
+  width: 100%;
+}
+
+label,
+fieldset {
+  display: grid;
+  gap: var(--dwpk-space-2);
+  font-weight: 500;
+  font-size: 0.9375rem;
+}
+
+fieldset {
+  border: 1px solid var(--dwpk-rim);
+  border-radius: var(--dwpk-radius-card);
+  padding: var(--dwpk-space-4);
+}
+
+legend {
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding-inline: var(--dwpk-space-2);
+}
+
+.checkbox,
+.radio {
+  display: flex;
+  align-items: center;
+  gap: var(--dwpk-space-2);
+  font-weight: 400;
+}
+
+/* A label is a grid, so every inline child of it becomes its own row. Left
+   bare, "write <name> to confirm" broke into three stacked lines. One element
+   is one row, and the sentence reads across. The weight matches .checkbox and
+   the entry list above it so the dialog is not three different typefaces. */
+.confirm-prompt {
+  font-weight: 400;
+}
+
+.checkbox input,
+.radio input {
+  width: auto;
+  min-height: 0;
+  box-shadow: none;
+  accent-color: var(--dwpk-accent);
+}
+
+.filters,
+.stack-form,
+.local-login-form,
+.provider-form {
+  display: grid;
+  gap: var(--dwpk-space-4);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-3);
+}
+
+.logout-form {
+  display: inline;
+}
+
+.logout-form button {
+  min-height: 2.5rem;
+  padding-inline: var(--dwpk-space-4);
+  background: var(--dwpk-bg);
+  color: var(--dwpk-ink);
+}
+
+/* ---- Login ------------------------------------------------------------- */
+
+/* Styled by element: the provider select carries no class of its own. */
+select {
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--dwpk-ink-muted) 50%),
+    linear-gradient(135deg, var(--dwpk-ink-muted) 50%, transparent 50%);
+  background-position: calc(100% - 20px) calc(50% + 2px), calc(100% - 14px) calc(50% + 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: var(--dwpk-space-8);
+}
+
+.local-login-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--dwpk-space-3);
+  margin: var(--dwpk-space-6) 0 var(--dwpk-space-4);
+  font-size: 0.8125rem;
+  color: var(--dwpk-ink-muted);
+}
+
+.local-login-divider::before,
+.local-login-divider::after {
+  content: "";
+  flex: 1;
+  height: 2px;
+  border-radius: var(--dwpk-radius-pill);
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+/* ---- Catalog ----------------------------------------------------------- */
+
+.card-grid {
+  display: grid;
+  gap: var(--dwpk-space-6);
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dwpk-space-3);
+  padding: var(--dwpk-space-6);
+  background: var(--dwpk-bg);
+  border-radius: var(--dwpk-radius-card);
+  border: 1px solid var(--dwpk-rim);
+}
+
+.card > .button-link {
+  margin-top: auto;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--dwpk-space-3);
+}
+
+/* The icon sits in a well, not on a plate. */
+.card-icon {
+  width: 3rem;
+  height: 3rem;
+  padding: var(--dwpk-space-1);
+  border-radius: var(--dwpk-radius-pill);
+  object-fit: contain;
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-2);
+}
+
+.tag {
+  padding: var(--dwpk-space-1) var(--dwpk-space-3);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--dwpk-ink-muted);
+  background: var(--dwpk-bg);
+  border-radius: var(--dwpk-radius-pill);
+}
+
+.muted {
+  color: var(--dwpk-ink-muted);
+}
+
+.hint {
+  color: var(--dwpk-ink-muted);
+  font-size: 0.875rem;
+}
+
+/* Colour carries the meaning here, so the text is the danger colour on a tinted
+   panel: a saturated fill would shout louder than an inline message. */
+.error {
+  padding: var(--dwpk-space-3) var(--dwpk-space-4);
+  border-radius: var(--dwpk-radius-input);
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+  color: var(--dwpk-danger);
+  font-weight: 500;
+}
+
+/* ---- Workspace --------------------------------------------------------- */
+
+.status-card {
+  display: grid;
+  gap: var(--dwpk-space-6);
+}
+
+.status-grid {
+  display: grid;
+  gap: var(--dwpk-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.command-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dwpk-space-3);
+}
+
+code,
+pre,
+textarea {
+  font-family: var(--dwpk-font-mono);
+}
+
+.command-row code {
+  padding: var(--dwpk-space-3) var(--dwpk-space-4);
+  background: var(--dwpk-inset);
+  border-radius: var(--dwpk-radius-input);
+  box-shadow: var(--dwpk-inset-shadow);
+  overflow-x: auto;
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-3);
+  margin-bottom: var(--dwpk-space-4);
+}
+
+/* The active tab keeps a ring and the accent, so it reads as chosen. */
+.tab-button.active {
+  color: var(--dwpk-accent);
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+.tab-panel {
+  display: none;
+}
+
+/* Next/Back/Finish row under a wizard step's own copy, not the tabs bar. */
+.wizard-actions {
+  display: flex;
+  gap: var(--dwpk-space-3);
+  margin-top: var(--dwpk-space-4);
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+/* A terminal stays a terminal in both themes - it is a screen, not clay. */
+.terminal-output {
+  min-height: 18rem;
+  max-height: 28rem;
+  overflow: auto;
+  padding: var(--dwpk-space-4);
+  background: var(--dwpk-terminal-bg);
+  color: var(--dwpk-terminal-ink);
+  border-radius: var(--dwpk-radius-input);
+  box-shadow: var(--dwpk-inset-shadow);
+  white-space: pre-wrap;
+}
+
+.terminal-input {
+  margin-top: var(--dwpk-space-3);
+}
+
+/* ---- Tables ------------------------------------------------------------ */
+
+/*
+ * The panel is raised; the rows inside are flat. Giving every row its own
+ * shadow turns a dense screen to mush, so depth here is reserved for the
+ * controls people actually touch.
+ */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: var(--dwpk-space-3);
+  border-bottom: 1px solid var(--dwpk-hairline);
+  vertical-align: middle;
+}
+
+th {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--dwpk-ink-muted);
+}
+
+tbody tr:last-child th,
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* The quota bounds opt out of the minimum below. Five resources, each with a
+   min and a max, is ten boxes in a row: at 7rem apiece the table was three
+   times the width of the window, which is why it read as a single column with
+   a scrollbar. They are two or three characters wide and sized to say so. */
+.admin-table td input:not([type="checkbox"]):not(.quota-bound),
+.admin-table td select {
+  min-width: 7rem;
+  min-height: 2.25rem;
+  padding: var(--dwpk-space-2) var(--dwpk-space-3);
+}
+
+.admin-table td .checkbox {
+  white-space: nowrap;
+}
+
+/*
+ * The anchor for the HTML5 form= pattern. Without this the empty <form> that
+ * lets one row's controls live in separate cells adds a phantom line of height
+ * to every row in three of the five tables.
+ */
+.admin-table td > form:empty {
+  display: none;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dwpk-space-2);
+}
+
+.row-actions button,
+.row-actions .button-link {
+  min-height: 2.25rem;
+  padding-inline: var(--dwpk-space-4);
+  font-size: 0.875rem;
+}
+
+.numeric {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.numeric .used {
+  display: inline-block;
+  min-width: 4rem;
+  text-align: right;
+  color: var(--dwpk-ink-muted);
+}
+
+/* The action columns have no visible header, but a header cell with no
+   accessible name is a hole in the table for anyone using a screen reader. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.panel:has(> table) {
+  overflow-x: auto;
+}
+
+.error-panel pre {
+  white-space: pre-wrap;
+  padding: var(--dwpk-space-4);
+  border-radius: var(--dwpk-radius-input);
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+  color: var(--dwpk-danger);
+}
+
+/* ---- Motion ------------------------------------------------------------ */
+
+@keyframes dwpk-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.panel,
+.card,
+.panel-dialog[open] {
+  animation: dwpk-rise var(--dwpk-motion-base) var(--dwpk-ease) both;
+}
+
+/* Markup is server-rendered, so the stagger is positional rather than scripted. */
+.card-grid .card:nth-child(1) { animation-delay: 0ms; }
+.card-grid .card:nth-child(2) { animation-delay: 60ms; }
+.card-grid .card:nth-child(3) { animation-delay: 120ms; }
+.card-grid .card:nth-child(4) { animation-delay: 180ms; }
+.card-grid .card:nth-child(5) { animation-delay: 240ms; }
+.card-grid .card:nth-child(n + 6) { animation-delay: 300ms; }
+
+.nav-links a,
+.tag,
+.theme-toggle {
+  transition:
+    box-shadow var(--dwpk-motion-base) var(--dwpk-ease),
+    color var(--dwpk-motion-fast) var(--dwpk-ease);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--dwpk-motion-base);
+}
+
+/*
+ * Motion is a preference, not a decoration. Anyone who has asked their OS for
+ * less of it gets none of it - including the htmx view transitions.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}
+
+/* ---- Responsive -------------------------------------------------------- */
+
+@media (max-width: 768px) {
+  .page {
+    padding: var(--dwpk-space-4);
+    gap: var(--dwpk-space-4);
+  }
+
+  .panel {
+    padding: var(--dwpk-space-4);
+    border-radius: var(--dwpk-radius-control);
+  }
+
+  .topbar {
+    padding: var(--dwpk-space-3) var(--dwpk-space-4);
+  }
+
+  .nav-links {
+    order: 3;
+    width: 100%;
+    gap: var(--dwpk-space-1);
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ---- Profile ----------------------------------------------------------- */
+
+/* A definition list rather than a table: these are one person's facts, not
+   rows to compare. */
+.profile-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--dwpk-space-2) var(--dwpk-space-6);
+  margin: 0;
+}
+
+.profile-facts dt {
+  color: var(--dwpk-ink-muted);
+  font-size: 0.875rem;
+}
+
+.profile-facts dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.quota-bars {
+  display: grid;
+  gap: var(--dwpk-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quota-bar {
+  display: grid;
+  grid-template-columns: 6rem 1fr max-content;
+  align-items: center;
+  gap: var(--dwpk-space-4);
+}
+
+.quota-bar-label {
+  color: var(--dwpk-ink-muted);
+  font-size: 0.875rem;
+}
+
+.quota-bar-value {
+  font-family: var(--dwpk-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+}
+
+/* <meter> styles from a vendor pseudo-element per engine, so both spellings
+   are needed to keep the bar recognisable in either theme. */
+.quota-bar meter {
+  width: 100%;
+  height: 0.375rem;
+  border: none;
+  border-radius: var(--dwpk-radius-pill);
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+.quota-bar meter::-webkit-meter-bar {
+  border: none;
+  border-radius: var(--dwpk-radius-pill);
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+.quota-bar meter::-webkit-meter-optimum-value,
+.quota-bar meter::-webkit-meter-suboptimum-value,
+.quota-bar meter::-webkit-meter-even-less-good-value {
+  border-radius: var(--dwpk-radius-pill);
+  background: var(--dwpk-accent);
+}
+
+.quota-bar meter::-moz-meter-bar {
+  border-radius: var(--dwpk-radius-pill);
+  background: var(--dwpk-accent);
+}
+
+/* The success counterpart to .error, matched to it so a confirmation and a
+   failure occupy the same space rather than making the page jump. */
+/*
+ * One banner, three tones. The default stays green because every .notice in
+ * the app today reports something that worked; .error and .warning are opt-in
+ * so a tone is always a deliberate choice rather than a default nobody picked.
+ */
+.notice {
+  padding: var(--dwpk-space-3) var(--dwpk-space-4);
+  border-radius: var(--dwpk-radius-input);
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+  color: var(--dwpk-success);
+  font-weight: 500;
+}
+
+.notice.error {
+  color: var(--dwpk-danger);
+}
+
+.notice.warning {
+  color: var(--dwpk-warning);
+}
+
+.notice strong {
+  display: block;
+}
+
+/* ---- Dialogs ----------------------------------------------------------- */
+
+.panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--dwpk-space-4);
+  flex-wrap: wrap;
+}
+
+.panel-header h1 {
+  margin: 0;
+}
+
+/* The dialog is a panel that happens to float, so it borrows the panel's
+   surface rather than inventing a second one. */
+.panel-dialog {
+  width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  padding: var(--dwpk-space-6);
+  border: 1px solid var(--dwpk-rim);
+  border-radius: var(--dwpk-radius-card);
+  background: var(--dwpk-bg);
+  color: var(--dwpk-ink);
+}
+
+.panel-dialog::backdrop {
+  background: rgba(15, 18, 23, 0.45);
+}
+
+/* Wide enough for the Resources table (.admin-table has a 44rem min-width)
+   without its own horizontal scrollbar. Only these dialogs need the room -
+   edit-workspace-dialog is a class, not an id, because its dialog id is
+   per-workspace-name (edit-ws-<name>). */
+#add-workspace-dialog,
+.edit-workspace-dialog {
+  width: min(72rem, calc(100vw - 4rem));
+}
+
+.panel-dialog form + form {
+  margin-top: var(--dwpk-space-8);
+  padding-top: var(--dwpk-space-6);
+  border-top: 1px solid var(--dwpk-hairline);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--dwpk-space-3);
+}
+
+/* A row that cannot sign in is a configuration fault, not a failure: amber,
+   not the danger colour, and the text says which. */
+.admin-table td.warning {
+  color: var(--dwpk-warning);
+}
+
+/* One column per resource. Inside it the two bounds sit on one line and the
+   measured usage sits under them, because usage is context for the decision
+   rather than a third thing to compare - and a third box would put the row
+   back over the width of the window. */
+.quota-cell {
+  min-width: 9rem;
+  font-family: var(--dwpk-font-mono);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.quota-bounds {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dwpk-space-1);
+}
+
+/* Sized to its content: a bound is "8" or "50Gi", and a full-width input for
+   three characters is what made this column look broken. */
+.quota-bound {
+  width: 4rem;
+  min-width: 0;
+  min-height: 2rem;
+  padding: var(--dwpk-space-1) var(--dwpk-space-2);
+  font-family: var(--dwpk-font-mono);
+  font-size: 0.8125rem;
+}
+
+.quota-dash {
+  color: var(--dwpk-ink-muted);
+}
+
+.quota-heading-bounds {
+  display: block;
+  margin-top: 2px;
+  color: var(--dwpk-ink-muted);
+  font-weight: 400;
+  font-size: 0.6875rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.quota-used-note {
+  display: block;
+  margin-top: var(--dwpk-space-1);
+  color: var(--dwpk-ink-muted);
+  font-size: 0.75rem;
+}
+
+/* ---- Filter chips ------------------------------------------------------ */
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-2);
+  margin-bottom: var(--dwpk-space-4);
+}
+
+.chip {
+  padding: var(--dwpk-space-2) var(--dwpk-space-4);
+  border-radius: var(--dwpk-radius-pill);
+  background: var(--dwpk-bg);
+  border: 1px solid var(--dwpk-rim);
+  color: var(--dwpk-ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* The selected filter is filled and takes the accent; the others stay as
+   outlined surfaces. */
+.chip-selected {
+  background: var(--dwpk-accent);
+  border-color: var(--dwpk-accent);
+  color: var(--dwpk-on-accent);
+}
+
+/* ---- Badges ------------------------------------------------------------ */
+
+.badge {
+  align-self: flex-start;
+  margin-left: auto;
+  padding: var(--dwpk-space-1) var(--dwpk-space-3);
+  border-radius: var(--dwpk-radius-pill);
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-warning {
+  color: var(--dwpk-warning);
+}
+
+/* ---- Catalog admin entries --------------------------------------------- */
+
+.entry-list {
+  display: grid;
+  gap: var(--dwpk-space-3);
+}
+
+.entry {
+  padding: var(--dwpk-space-4);
+  border-radius: var(--dwpk-radius-control);
+  background: var(--dwpk-bg);
+  border: 1px solid var(--dwpk-hairline);
+}
+
+.entry summary {
+  display: flex;
+  align-items: center;
+  gap: var(--dwpk-space-3);
+  cursor: pointer;
+}
+
+.entry[open] summary {
+  margin-bottom: var(--dwpk-space-4);
+  padding-bottom: var(--dwpk-space-3);
+  border-bottom: 1px solid var(--dwpk-hairline);
+}
+
+.entry-name {
+  font-weight: 600;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.entry textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+}
+
+.entry-delete {
+  margin-top: var(--dwpk-space-4);
+  padding-top: var(--dwpk-space-3);
+  border-top: 1px solid var(--dwpk-hairline);
+}
+
+/* ---- Env var rows (create workspace) ----------------------------------- */
+
+.field-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: var(--dwpk-space-2);
+}
+
+.env-row {
+  display: flex;
+  gap: var(--dwpk-space-2);
+  margin-bottom: var(--dwpk-space-2);
+}
+
+.env-row input {
+  flex: 1;
+}
+
+/* ---- Status chips ------------------------------------------------------ */
+
+/*
+ * A dot and a word. The dot is filled for a live state and hollow for a dormant
+ * one, so the distinction survives greyscale, a screenshot, or a reader who
+ * cannot separate green from amber. The word is always spelled out; the colour
+ * is redundant by design.
+ *
+ * The label stays ink and only the dot takes the state colour - a table column
+ * of four differently-coloured words reads as four kinds of alert.
+ */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dwpk-space-2);
+  color: var(--dwpk-ink);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.status-chip::before {
+  content: "";
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 1px solid var(--dwpk-idle);
+  border-radius: var(--dwpk-radius-pill);
+}
+
+.status-ok::before {
+  border-color: var(--dwpk-success);
+  background: var(--dwpk-success);
+}
+
+.status-bad::before {
+  border-color: var(--dwpk-danger);
+  background: var(--dwpk-danger);
+}
+
+.status-busy::before {
+  border-color: var(--dwpk-warning);
+  background: var(--dwpk-warning);
+}
+
+/* Hollow: nothing is running. */
+.status-idle::before {
+  background: transparent;
+}
+
+/* ---- Empty states ------------------------------------------------------ */
+
+.empty-state {
+  display: grid;
+  justify-items: center;
+  gap: var(--dwpk-space-3);
+  padding: var(--dwpk-space-8) var(--dwpk-space-6);
+  border-radius: var(--dwpk-radius-card);
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+  text-align: center;
+}
+
+.empty-state h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.empty-state p {
+  max-width: 36rem;
+  margin: 0;
+  color: var(--dwpk-ink-muted);
+}
+
+/* ---- Loading ----------------------------------------------------------- */
+
+/* htmx sets aria-busy while a swap is in flight. Fading rather than replacing
+   the content with skeleton blocks: the table is already on screen and its
+   shape does not change, so a shimmer of fake rows would be a lie about what
+   is arriving. */
+[aria-busy="true"] {
+  opacity: 0.55;
+  transition: opacity 120ms ease-out;
+}
+
+/* htmx would inject these itself, but its inline <style> is blocked by the
+   platform CSP. Same rules, served from a file. */
+.htmx-indicator {
+  opacity: 0;
+  transition: opacity 200ms ease-in;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+  opacity: 1;
+}
+
+.htmx-request.filters input,
+.htmx-request.filters select {
+  cursor: progress;
+}
+
+/* ---- Shell and sidebar ------------------------------------------------- */
+
+.shell {
+  display: grid;
+  grid-template-columns: 15rem 1fr;
+  min-height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dwpk-space-6);
+  padding: var(--dwpk-space-6) var(--dwpk-space-4);
+  background: var(--dwpk-bg);
+  border-right: 1px solid var(--dwpk-hairline);
+  position: sticky;
+  top: 0;
+  align-self: start;
+  max-height: 100vh;
+  overflow-y: auto;
+  z-index: 1;
+}
+
+.sidebar-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dwpk-space-1);
+}
+
+.sidebar-heading {
+  margin: 0 0 var(--dwpk-space-2) var(--dwpk-space-3);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dwpk-ink-muted);
+}
+
+.nav-link {
+  padding: var(--dwpk-space-2) var(--dwpk-space-3);
+  border-radius: var(--dwpk-radius-input);
+  color: var(--dwpk-ink-muted);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.nav-link:hover,
+.nav-link:focus-visible {
+  color: var(--dwpk-ink);
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+/* The current page is filled and takes the accent, so where you are reads
+   differently from where you could go. */
+.nav-link-current {
+  color: var(--dwpk-accent);
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+/* The onboarding entry is an invitation rather than a destination, so it is
+   outlined instead of filled: visible enough to find, quiet enough to ignore.
+   It disappears once the wizard is finished. */
+.nav-link-callout {
+  color: var(--dwpk-accent);
+  box-shadow: inset 0 0 0 1px var(--dwpk-accent);
+}
+
+.nav-link-callout.nav-link-current {
+  background: var(--dwpk-inset);
+}
+
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--dwpk-space-3);
+  margin-top: auto;
+  padding-top: var(--dwpk-space-4);
+}
+
+/* ---- Command palette --------------------------------------------------- */
+
+.palette {
+  width: min(28rem, calc(100vw - 2rem));
+  margin-top: 12vh;
+  padding: var(--dwpk-space-4);
+  border: 1px solid var(--dwpk-rim);
+  border-radius: var(--dwpk-radius-card);
+  background: var(--dwpk-bg);
+  color: var(--dwpk-ink);
+}
+
+.palette::backdrop {
+  background: rgba(15, 18, 23, 0.45);
+}
+
+.palette-input {
+  width: 100%;
+  margin-bottom: var(--dwpk-space-3);
+}
+
+.palette-list {
+  display: grid;
+  gap: var(--dwpk-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.palette-list a {
+  display: block;
+  padding: var(--dwpk-space-2) var(--dwpk-space-3);
+  border-radius: var(--dwpk-radius-input);
+  color: var(--dwpk-ink);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.palette-list a:hover,
+.palette-list a:focus-visible {
+  background: var(--dwpk-inset);
+  box-shadow: var(--dwpk-inset-shadow);
+}
+
+.palette-hint {
+  margin: var(--dwpk-space-3) 0 0;
+  color: var(--dwpk-ink-muted);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+/* A narrow window has no room for a column, so the sidebar becomes a strip
+   across the top and the palette carries the rest. */
+@media (max-width: 768px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    max-height: none;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--dwpk-space-3);
+  }
+
+  .sidebar-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .sidebar-heading {
+    display: none;
+  }
+
+  .sidebar-footer {
+    margin-top: 0;
+    padding-top: 0;
+  }
+}
+
+/* ---- Loading ----------------------------------------------------------- */
+
+/*
+ * A skeleton stands in for content that is on its way. It is deliberately not
+ * a spinner: a spinner says "wait", a skeleton says "wait, and here is the
+ * shape of what you are waiting for".
+ */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--dwpk-inset) 0%,
+    var(--dwpk-hairline) 50%,
+    var(--dwpk-inset) 100%
+  );
+  background-size: 200% 100%;
+  border-radius: var(--dwpk-radius-input);
+  animation: dwpk-shimmer 1.4s linear infinite;
+}
+
+.skeleton-block {
+  min-height: 12rem;
+}
+
+@keyframes dwpk-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/*
+ * An in-flight form must not look idle. The button keeps its label - replacing
+ * text mid-request makes the control jump - and gains a spinner and a
+ * not-allowed cursor instead.
+ */
+.htmx-request button[type="submit"],
+button[type="submit"].htmx-request {
+  cursor: progress;
+  opacity: var(--dwpk-opacity-disabled);
+}
+
+.htmx-request button[type="submit"]::after,
+button[type="submit"].htmx-request::after {
+  content: "";
+  width: 0.875rem;
+  height: 0.875rem;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: var(--dwpk-radius-pill);
+  animation: dwpk-spin 700ms linear infinite;
+}
+
+@keyframes dwpk-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Button variants --------------------------------------------------- */
+
+/* Ghost carries no surface of its own: for the third or fourth action in a
+   row, where a filled button would compete with the one that matters. */
+.button-link.ghost,
+button.ghost {
+  background: transparent;
+  color: var(--dwpk-ink);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.button-link.ghost:hover,
+button.ghost:hover {
+  background: var(--dwpk-inset);
+}
+
+/* Square, label-free, and therefore only ever used with an aria-label. */
+button.icon,
+.theme-toggle {
+  border-color: var(--dwpk-edge);
+  width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0;
+  background: var(--dwpk-bg);
+  color: var(--dwpk-ink);
+}
+
+/* ---- Terminal and logs ------------------------------------------------- */
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--dwpk-space-3);
+  margin-bottom: var(--dwpk-space-3);
+}
+
+.terminal-status {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Tables, responsively ---------------------------------------------- */
+
+/*
+ * A table with six columns of controls will not fit a phone, and the honest
+ * answer is to let it scroll rather than to hide the columns someone came for.
+ * tabindex makes the region reachable, so the scroll is not mouse-only.
+ */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll:focus-visible {
+  outline: var(--dwpk-focus-ring);
+  outline-offset: calc(var(--dwpk-focus-offset) * -1);
+}
+
+.admin-table {
+  min-width: 44rem;
+}
+
+/* ---- Touch ------------------------------------------------------------- */
+
+/*
+ * 36px is comfortable with a mouse and a miss with a thumb. Raised only where
+ * the pointer is actually coarse, so desktop density is untouched.
+ */
+@media (pointer: coarse) {
+  .row-actions button,
+  .row-actions .button-link,
+  .tab-button {
+    min-height: 2.75rem;
+  }
+}
+
+/* ---- Narrow widths ----------------------------------------------------- */
+
+@media (max-width: 768px) {
+  /* The sidebar becomes a drawer rather than a wrapped strip: a strip of nine
+     links above every page pushes the page itself below the fold. */
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .drawer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--dwpk-space-3);
+    padding: var(--dwpk-space-3) var(--dwpk-space-4);
+    background: var(--dwpk-bg);
+    border-bottom: 1px solid var(--dwpk-hairline);
+  }
+
+  .shell > .sidebar {
+    display: none;
+  }
+
+  .terminal-output {
+    min-height: 60vh;
+    max-height: 70vh;
+    border-radius: 0;
+  }
+}
+
+/* The trigger exists only where the sidebar has been hidden. */
+@media (min-width: 769px) {
+  .drawer-bar {
+    display: none;
+  }
+}
+
+/* Three bars, drawn rather than typed: a glyph would need a font that carries
+   it, and the CSP allows no external ones. */
+.drawer-toggle::before {
+  content: "";
+  width: 1.1rem;
+  height: 0.75rem;
+  border-top: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  box-shadow: inset 0 0 0 1px transparent;
+  background:
+    linear-gradient(currentColor, currentColor) center / 100% 2px no-repeat;
+}
+
+.palette-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dwpk-space-3);
+  margin-top: var(--dwpk-space-4);
+  padding-top: var(--dwpk-space-4);
+  border-top: 1px solid var(--dwpk-hairline);
+}
+
+/* ---- Identifiers ------------------------------------------------------- */
+
+/*
+ * Names, image refs, namespaces and endpoints are things you type into a
+ * terminal, so they are set like it. This is most of what separates a developer
+ * tool from a generic admin screen, and it costs one font-family.
+ */
+.ident {
+  font-family: var(--dwpk-font-mono);
+  font-size: 0.875em;
+  letter-spacing: -0.01em;
+}
+
+.ident-muted {
+  font-family: var(--dwpk-font-mono);
+  font-size: 0.8125em;
+  color: var(--dwpk-ink-muted);
+}
+
+/* ---- Page header ------------------------------------------------------- */
+
+/*
+ * Every screen used to open with a bare <h1> and, somewhere below it, a button
+ * floating above a table. Eight screens, one shape. The header gives the title,
+ * its explanation and the screen's primary action a fixed relationship, so the
+ * screens differ by what they contain rather than all looking like the same
+ * panel.
+ */
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--dwpk-space-4);
+  padding-bottom: var(--dwpk-space-5);
+  border-bottom: 1px solid var(--dwpk-hairline);
+}
+
+.page-header h1 {
+  margin: 0;
+  font-size: 1.375rem;
+}
+
+.page-header-text {
+  display: grid;
+  gap: var(--dwpk-space-2);
+  min-width: 0;
+}
+
+.page-header-text p {
+  margin: 0;
+  max-width: 60ch;
+  color: var(--dwpk-ink-muted);
+  font-size: 0.875rem;
+}
+
+.page-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-3);
+}
+
+/* ---- Summary strip ----------------------------------------------------- */
+
+/*
+ * The dashboard's top line: a handful of counts, not a chart. Numbers first
+ * because that is what is being compared; the label under it in muted ink.
+ */
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--dwpk-space-4);
+}
+
+.summary-stat {
+  display: grid;
+  gap: var(--dwpk-space-1);
+  padding: var(--dwpk-space-4);
+  border: 1px solid var(--dwpk-hairline);
+  border-radius: var(--dwpk-radius-card);
+  background: var(--dwpk-bg);
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-label {
+  display: flex;
+  align-items: center;
+  gap: var(--dwpk-space-2);
+  color: var(--dwpk-ink-muted);
+  font-size: 0.8125rem;
+}
+
+/* ---- Workspace cards --------------------------------------------------- */
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: var(--dwpk-space-4);
+}
+
+.workspace-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dwpk-space-3);
+  padding: var(--dwpk-space-5);
+  border: 1px solid var(--dwpk-hairline);
+  border-radius: var(--dwpk-radius-card);
+  background: var(--dwpk-bg);
+}
+
+.workspace-card:hover {
+  border-color: var(--dwpk-edge);
+}
+
+.workspace-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--dwpk-space-3);
+}
+
+.workspace-card-name {
+  font-family: var(--dwpk-font-mono);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dwpk-ink);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.workspace-card-name:hover {
+  text-decoration: underline;
+}
+
+/* Image, size and uptime on one line: the facts you scan, not a table. */
+.workspace-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-1) var(--dwpk-space-3);
+  color: var(--dwpk-ink-muted);
+  font-size: 0.8125rem;
+}
+
+.workspace-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-2);
+  margin-top: auto;
+  padding-top: var(--dwpk-space-2);
+}
+
+.workspace-card-actions button,
+.workspace-card-actions .button-link {
+  min-height: 2.25rem;
+  padding-inline: var(--dwpk-space-4);
+  font-size: 0.875rem;
+}
+
+/* The limit half of "2 / 8" is context, not the number being read. */
+.summary-of {
+  color: var(--dwpk-ink-muted);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+/* ---- Terminal ---------------------------------------------------------- */
+
+/*
+ * xterm draws into .terminal-mount and measures it, so the height has to be
+ * real before the fit addon runs - a mount with no height computes zero columns
+ * and the shell wraps at the wrong width forever.
+ */
+.terminal-shell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--dwpk-space-3);
+  min-height: 0;
+}
+
+.terminal-mount {
+  height: 26rem;
+  padding: var(--dwpk-space-3);
+  background: var(--dwpk-terminal-bg);
+  border: 1px solid var(--dwpk-hairline);
+  border-radius: var(--dwpk-radius-card);
+  overflow: hidden;
+}
+
+.terminal-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-2);
+  margin-left: auto;
+}
+
+.terminal-bar-actions button,
+.terminal-bar-actions .button-link {
+  min-height: 2rem;
+  padding-inline: var(--dwpk-space-3);
+  font-size: 0.8125rem;
+}
+
+/* Full screen: the shell takes the whole viewport and the mount takes what is
+   left after the bar, rather than staying 26rem tall in the middle of a
+   black screen. */
+.terminal-shell:fullscreen {
+  padding: var(--dwpk-space-4);
+  background: var(--dwpk-ground);
+}
+
+.terminal-shell:fullscreen .terminal-mount {
+  flex: 1;
+  height: auto;
+}
+
+/* The pop-out window has no navigation, so the terminal is the page. */
+.page-bare {
+  display: flex;
+  flex-direction: column;
+  padding: var(--dwpk-space-4);
+  max-width: none;
+  height: 100vh;
+}
+
+.page-bare .terminal-shell {
+  flex: 1;
+}
+
+.page-bare .terminal-mount {
+  flex: 1;
+  height: auto;
+}
+
+/* ---- Code blocks ------------------------------------------------------- */
+
+/*
+ * Conditions, and anything else that is the machine's own words. Scrolls
+ * rather than wrapping: a wrapped condition is harder to read than a scrolled
+ * one, and this is text people copy into bug reports.
+ */
+.code-block {
+  margin: 0;
+  padding: var(--dwpk-space-4);
+  overflow-x: auto;
+  background: var(--dwpk-inset);
+  border: 1px solid var(--dwpk-hairline);
+  border-radius: var(--dwpk-radius-input);
+  font-family: var(--dwpk-font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  white-space: pre;
+  tab-size: 2;
+}
+
+/* ---- Pagination -------------------------------------------------------- */
+
+.page-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--dwpk-space-4);
+  margin-top: var(--dwpk-space-4);
+  padding-top: var(--dwpk-space-4);
+  border-top: 1px solid var(--dwpk-hairline);
+}
+
+.page-sizes,
+.page-numbers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--dwpk-space-2);
+}
+
+.page-controls-label {
+  color: var(--dwpk-ink-muted);
+  font-size: 0.8125rem;
+}
+
+/* ---- Wide forms -------------------------------------------------------- */
+
+/*
+ * A create form sitting under a full-width table used to be capped at 42rem,
+ * which read as two unrelated screens stacked rather than one screen with an
+ * action at the bottom. It now spans the same width and lays its fields out in
+ * a row, wrapping when there is no room.
+ */
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  align-items: end;
+  gap: var(--dwpk-space-4);
+}
+
+.form-row label {
+  display: grid;
+  gap: var(--dwpk-space-2);
+  min-width: 0;
+}
+
+.form-row button[type="submit"] {
+  justify-self: start;
+}
+
+/* ---- Multi-select ------------------------------------------------------ */
+
+/*
+ * A native <select multiple>. It needs no JavaScript, works with the keyboard
+ * out of the box, and submits one field per chosen option - which is the shape
+ * normalizeProjects already accepts. A chip picker would have been prettier and
+ * would have needed all of that rebuilt.
+ */
+.multi-select {
+  min-width: 9rem;
+  padding: var(--dwpk-space-1);
+}
+
+.multi-select option {
+  padding: var(--dwpk-space-1) var(--dwpk-space-2);
+  border-radius: var(--dwpk-radius-input);
+}
+
+/* Table cells hold these, so they must not stretch a row taller than the
+   controls beside them. */
+.admin-table .multi-select {
+  min-height: 0;
+}
+
+/* A form that lives inside a table cell: it must not push the row taller than
+   the controls in the cells beside it. */
+.inline-form {
+  display: flex;
+  gap: var(--dwpk-space-2);
+  margin-top: var(--dwpk-space-2);
+}
+
+.inline-form input {
+  min-width: 8rem;
+}
+
+.inline-form button {
+  min-height: 2.25rem;
+  padding-inline: var(--dwpk-space-3);
+}
+
+/* A control and the button that submits it, kept together. Loose in a table
+   cell the two wrap independently and end up on different lines at different
+   heights. */
+.control-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--dwpk-space-2);
+  flex-wrap: nowrap;
+}
+
+.control-pair select {
+  min-width: 6rem;
+}
+
+.control-pair button {
+  min-height: 2.25rem;
+  padding-inline: var(--dwpk-space-3);
+  white-space: nowrap;
+}
+
+/* The project half of <project>/<workspace>: present for disambiguation, not
+   for emphasis, so it recedes and the workspace name stays the thing you read. */
+.workspace-card-project {
+  color: var(--dwpk-ink-muted);
+  font-weight: 400;
+}
+
+/* The heading over one project's workspaces. The count sits beside it because
+   "how many" is the first thing anyone asks of a grouped list. */
+.group-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--dwpk-space-3);
+  margin: var(--dwpk-space-6) 0 var(--dwpk-space-3);
+  font-size: 0.9375rem;
+}
+
+.group-heading:first-of-type {
+  margin-top: 0;
+}
+
+/* An uploaded logo replaces the built-in square, so the ::before mark has to
+   go or the brand shows both. */
+.brand-logo::before {
+  content: none;
+}
+
+.brand-logo img {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--dwpk-radius-control);
+  object-fit: contain;
+}
+
+.logo-preview {
+  display: flex;
+  align-items: center;
+  gap: var(--dwpk-space-4);
+}
+
+.logo-preview img {
+  border: 1px solid var(--dwpk-hairline);
+  border-radius: var(--dwpk-radius-control);
+  object-fit: contain;
+}
+
+/* Open, Stop and Delete sit side by side but are three different elements - a
+   link, a form button and a dialog trigger - so without a shared size they come
+   out three different widths and heights. */
+.row-action {
+  min-width: 5.5rem;
+  min-height: 2.25rem;
+  padding-inline: var(--dwpk-space-3);
+  justify-content: center;
+}
+
+/* ---- Catalog administration -------------------------------------------- */
+
+/*
+ * Three to a row on a wide screen, fewer as it narrows. minmax rather than a
+ * fixed three columns: at 1000px three of these are unreadably cramped, and a
+ * grid that reflows is better than one that keeps its promise and hurts.
+ */
+/* Three to a row, not auto-fill: the entries are a fixed set an administrator
+   scans, and a column count that changes with the window makes the same catalog
+   look different on every screen. It steps down rather than squeezing. */
+.catalog-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--dwpk-space-4);
+  align-items: start;
+}
+
+@media (max-width: 68rem) {
+  .catalog-admin-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 44rem) {
+  .catalog-admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Each entry is still a <details>: eight editable fields including two
+   textareas do not fit a card that stays closed, so the card is the summary and
+   opening it gives the form. */
+.catalog-admin-grid .entry {
+  margin: 0;
+}
+
+.catalog-admin-grid .entry[open] {
+  /* An opened entry spans the grid rather than stretching its own column,
+     which would leave two very tall neighbours beside it. */
+  grid-column: 1 / -1;
+}
+
+/* ---- Resource table ----------------------------------------------------- */
+
+.resource-table th[scope="row"] {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.resource-table input {
+  width: 100%;
+  min-height: 2rem;
+  font-family: var(--dwpk-font-mono);
+  font-size: 0.8125rem;
+}
+
+/* A spanning cell holds an input and its explanation, stacked. */
+.resource-table td[colspan] {
+  display: table-cell;
+}
+
+.resource-table td[colspan] .hint {
+  display: block;
+  margin-top: var(--dwpk-space-1);
+}
+
+/* ---- Catalog card actions ----------------------------------------------- */
+
+/* Pushed to the bottom so cards of different description lengths still line
+   their buttons up. It replaces the `.card > .button-link` rule's job, which
+   only worked while there was exactly one action. */
+.card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--dwpk-space-2);
+  margin-top: auto;
+}
+
+/* ---- Terminal sizing ---------------------------------------------------- */
+
+/* The mount's height must come from the layout, never from its contents.
+   xterm's own element is content-sized (rows x cell height), so wherever the
+   mount is `height: auto` the fit addon measures the height the previous fit
+   produced and the terminal grows a row on every trigger. Giving the mount a
+   definite height in all three modes - fixed in the tab, flex-filled in full
+   screen and on the pop-out page - is what stops that loop at the source; the
+   guard in refit() is the second line of defence. */
+.terminal-mount .xterm {
+  height: 100%;
+}
+
+.terminal-shell:fullscreen .terminal-mount,
+.page-bare .terminal-mount {
+  min-height: 0;
+}

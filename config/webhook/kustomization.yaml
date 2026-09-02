@@ -1,0 +1,13 @@
+resources:
+- manifests.yaml
+- service.yaml
+
+# namespaceSelector is not expressible as a controller-gen marker, so it is
+# patched onto the generated configurations here. Deleting this patch is the
+# 3am outage in SPEC §7.5.
+# Strategic merge patches keyed on the webhook name. The webhooks list has
+# name as its merge key, so each patch reaches its own webhook regardless of
+# the order controller-gen emits them in.
+patches:
+- path: mutating_namespace_selector_patch.yaml
+- path: namespace_selector_patch.yaml

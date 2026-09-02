@@ -1,0 +1,134 @@
+package ui
+
+templ AdminSettingsPage(data SettingsData) {
+	@pageHeader("Global", "What the platform calls itself, and how it looks by default.", nil)
+	<section class="panel">
+		if data.Error != "" {
+			<p class="error" role="alert">{ data.Error }</p>
+		}
+		if data.Notice != "" {
+			<p class="notice" role="status">{ data.Notice }</p>
+		}
+		// Multipart because of the logo. Everything else on the form would be
+		// happy with a plain POST.
+		<form action={ linkPath(ctx, "/admin/settings") } method="post" enctype="multipart/form-data" class="stack-form">
+			<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+			<label for="platform-name">
+				Name
+				<input
+					id="platform-name"
+					name="displayName"
+					value={ data.Config.Spec.DisplayName }
+					placeholder="dwpk"
+					maxlength="64"
+				/>
+				<span class="hint">Shown in the sidebar and in every page title. Blank means dwpk.</span>
+			</label>
+			<label for="platform-support">
+				Support address
+				<input
+					id="platform-support"
+					name="supportEmail"
+					type="email"
+					value={ data.Config.Spec.SupportEmail }
+					placeholder="platform@example.com"
+					maxlength="254"
+				/>
+				<span class="hint">
+					Shown to somebody whose account is disabled, since the sign-in
+					page cannot look up an administrator for them. Blank tells them
+					to contact an administrator without naming one.
+				</span>
+			</label>
+			<label for="platform-gpu-resource">
+				GPU resource name
+				<input
+					id="platform-gpu-resource"
+					name="gpuResourceName"
+					value={ data.Config.Spec.GPUResourceName }
+					placeholder="nvidia.com/gpu"
+					maxlength="253"
+				/>
+				<span class="hint">
+					What a GPU is requested as on this cluster. It is the vendor's
+					name, not Kubernetes': <code>amd.com/gpu</code> or a MIG slice like
+					<code>nvidia.com/mig-1g.5gb</code>. The GPU quota counts this
+					resource and the create form offers it. Blank means
+					<code>nvidia.com/gpu</code>.
+				</span>
+			</label>
+			<label for="platform-theme">
+				Default appearance
+				<select id="platform-theme" name="defaultTheme">
+					for _, theme := range themeOptions() {
+						<option value={ theme.Value } selected?={ data.Config.Theme() == theme.Value }>{ theme.Label }</option>
+					}
+				</select>
+				<span class="hint">
+					For anyone who has not chosen one. A person's own choice still
+					wins - this is a default, not an enforcement.
+				</span>
+			</label>
+			<label for="platform-logo">
+				Logo
+				<input id="platform-logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"/>
+				<span class="hint">
+					At most 120×120 and 128KB. PNG, JPEG, WebP or SVG. Also used as
+					the browser tab icon.
+				</span>
+			</label>
+			if data.Config.HasLogo() {
+				<div class="logo-preview">
+					<img src={ linkPath(ctx, "/logo") } alt="The current platform logo" width="60" height="60"/>
+					<label class="checkbox">
+						<input type="checkbox" name="clearLogo" value="true"/>
+						Remove the current logo
+					</label>
+				</div>
+			}
+			<button type="submit">Save settings</button>
+		</form>
+	</section>
+	@runtimeSettingsPanel(data.Runtime)
+}
+
+// The configuration this process started with. Read-only on purpose: these come
+// from the Deployment, and a form that appeared to change them would be lying
+// until the next restart.
+//
+// Nothing confidential appears because nothing confidential is passed in -
+// RuntimeSettings has no field to hold one. That is a stronger guarantee than
+// masking, which only holds until somebody adds a row and forgets.
+templ runtimeSettingsPanel(runtime RuntimeSettings) {
+	<section class="panel">
+		<h2>Configuration</h2>
+		<p class="hint">
+			How this instance was started. Change these on the Deployment and
+			restart; nothing here is editable from the browser.
+		</p>
+		<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrollable">
+			<table class="admin-table">
+				<thead>
+					<tr>
+						<th>Setting</th>
+						<th>Value</th>
+						<th>Environment variable</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, row := range runtime.Rows() {
+						<tr>
+							<td>{ row.Name }</td>
+							if row.Value == "" {
+								<td class="muted">not set</td>
+							} else {
+								<td><code>{ row.Value }</code></td>
+							}
+							<td><code class="muted">{ row.Variable }</code></td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
+	</section>
+}

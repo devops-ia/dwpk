@@ -1,0 +1,231 @@
+package ui
+
+import (
+
+	dwpkv1alpha1 "github.com/devops-ia/dwpk/api/v1alpha1"
+)
+
+templ AdminPeoplePage(data PeopleData) {
+	@pageHeader("Users", "Every person with a UserSpace, joined to their local login where they have one.", addUserAction())
+	<section class="panel">
+		if data.Error != "" {
+			<p class="error">{ data.Error }</p>
+		}
+		<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrollable">
+		<table class="admin-table">
+			<thead>
+				<tr>
+					<th>User</th>
+					<th>Sign-in</th>
+					<th>Namespace</th>
+					<th>Status</th>
+					<th>Role</th>
+					<th>Access</th>
+					<th><span class="visually-hidden">Actions</span></th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, row := range data.Rows {
+					<tr>
+						<td>
+							<span class="ident">{ row.Username }</span>
+							if row.Email != row.Username {
+								<div class="ident-muted">{ row.Email }</div>
+							}
+						</td>
+						if !row.HasUserSpace {
+							@orphanedLoginRow(row, data.Session.CSRFToken)
+						} else {
+							{{ formID := "membership-" + row.UserSpaceName }}
+							<td>
+								{ signInSummary(row) }
+								if data.LocalAuth && len(row.LocalUsers) == 0 {
+									// Someone created without a password can be given one
+									// here. The username and owner come from the row, so
+									// this cannot be pointed at the wrong person.
+									<form action={ linkPath(ctx, "/admin/users") } method="post" class="inline-form">
+										<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+										<input type="hidden" name="username" value={ row.Username }/>
+										<input type="hidden" name="owner" value={ row.Owner }/>
+										<input
+											name="password"
+											type="password"
+											required
+											autocomplete="new-password"
+											aria-label={ "Set a password for " + row.Username }
+											placeholder="Set a password"
+										/>
+										<button type="submit" class="secondary">Set</button>
+									</form>
+								}
+							</td>
+							<td><span class="ident">{ row.Namespace }</span></td>
+							<td>@statusChip(row.Status)</td>
+							<td>
+								// A <form> cannot straddle <td> boundaries, so it sits outside the
+								// cells and each control joins it by id. That keeps one cell per
+								// column header instead of merging several into a colspan.
+								<form
+									id={ formID }
+									action={ linkPath(ctx, "/admin/userspaces/"+row.UserSpaceName+"/membership") }
+									method="post"
+								></form>
+								<input type="hidden" form={ formID } name="csrf_token" value={ data.Session.CSRFToken }/>
+								<select form={ formID } name="role" aria-label={ "Role for " + row.UserSpaceName }>
+									for _, option := range roleOptions() {
+										<option value={ option } selected?={ row.Role == option }>{ option }</option>
+									}
+								</select>
+							</td>
+							<td>
+								<label class="checkbox">
+									<input type="checkbox" form={ formID } name="disabled" value="true" checked?={ row.Disabled }/>
+									Disabled
+								</label>
+							</td>
+							<td class="row-actions">
+								<button type="submit" form={ formID }>Save</button>
+								// Only for a local login with an email. An identity-provider
+								// account has no password here to reset, and without an
+								// address there is nobody to send the link to.
+								if data.LocalAuth && len(row.LocalUsers) > 0 && row.Email != "" {
+									<form action={ linkPath(ctx, "/admin/users/"+row.Username+"/reset") } method="post">
+										<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+										<button type="submit" class="secondary">Reset password</button>
+									</form>
+								}
+								@confirmDelete(
+									"delete-userspace-"+row.UserSpaceName,
+									"UserSpace "+row.UserSpaceName,
+									string(linkPath(ctx, "/admin/userspaces/"+row.UserSpaceName+"/delete")),
+									data.Session.CSRFToken,
+									[]string{
+										"Their namespace is deleted, and every workspace and home volume inside it goes with it. This is not recoverable.",
+										"Their password sign-in is deleted too, so the account is gone rather than left unable to reach anything.",
+										"They lose all access immediately, including any open session.",
+									},
+								)
+							</td>
+						}
+					</tr>
+				}
+			</tbody>
+		</table>
+		</div>
+	</section>
+	@addUserDialog(data)
+}
+
+// orphanedLoginRow renders a local login whose owner matches no UserSpace. It
+// fills the remaining cells so the row still lines up with the headers, and
+// offers the only useful action: removing the dead login.
+templ orphanedLoginRow(row PersonRow, csrfToken string) {
+	<td>{ signInSummary(row) }</td>
+	<td>-</td>
+	<td class="warning">No UserSpace - cannot sign in</td>
+	<td>-</td>
+	<td>-</td>
+	<td>-</td>
+	<td class="row-actions">
+		for _, user := range row.LocalUsers {
+			@confirmDelete(
+				"delete-login-"+user.Name,
+				"login "+user.Username,
+				string(linkPath(ctx, "/admin/users/"+user.Name+"/delete")),
+				csrfToken,
+				[]string{
+					"The stored password is removed and this username can no longer sign in.",
+					"No UserSpace or workspace is affected - this login already has none.",
+				},
+			)
+		}
+	</td>
+}
+
+// One form, not two. It used to be a UserSpace form followed by a separate
+// "add a password sign-in" form that asked again for the username and the
+// owner, with a note telling the operator to keep them matching by hand. They
+// are the same person: the login is derived from the fields above it, and the
+// only thing the password section needs is a password.
+templ addUserDialog(data PeopleData) {
+	<dialog id="add-user-dialog" class="panel-dialog">
+		<form action={ linkPath(ctx, "/admin/userspaces") } method="post" class="stack-form">
+			<h2>Add user</h2>
+			<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+			<label for="us-name">
+				Name
+				<input id="us-name" name="name" required placeholder="alice"/>
+				<span class="hint">The object name, and the login unless you set one below.</span>
+			</label>
+			<label for="us-owner">
+				Email
+				<input id="us-owner" name="owner" type="email" required placeholder="alice@example.com"/>
+				<span class="hint">
+					The identity your provider authenticates, and what RBAC is bound
+					to. Signing in works with this or with the name above.
+				</span>
+			</label>
+			<details class="entry">
+				<summary>Optional details</summary>
+				<label for="us-namespace">
+					Namespace
+					<input id="us-namespace" name="namespace" autocomplete="off" placeholder={ dwpkv1alpha1.NamespacePrefix + "alice" }/>
+					<span class="hint">Defaults to { dwpkv1alpha1.NamespacePrefix }&lt;name&gt;. Cannot be changed later.</span>
+				</label>
+			</details>
+			<label for="us-role">
+				Role
+				<select id="us-role" name="role">
+					for _, option := range roleOptions() {
+						<option value={ option }>{ option }</option>
+					}
+				</select>
+			</label>
+			if data.LocalAuth {
+				<label for="us-password">
+					Password
+					<input id="us-password" name="password" type="password" autocomplete="new-password"/>
+					<span class="hint">
+						Optional. Leave blank for someone who signs in through an
+						identity provider.
+					</span>
+				</label>
+			}
+			<details class="entry">
+				<summary>Quota</summary>
+				<p class="hint">
+					Leave a field blank for the default. The workspace count is how
+					many may run at once; stopped ones are limited only by storage.
+				</p>
+				<label for="us-cpu">
+					CPU
+					<input id="us-cpu" name="cpu" placeholder="4"/>
+				</label>
+				<label for="us-memory">
+					Memory
+					<input id="us-memory" name="memory" placeholder="8Gi"/>
+				</label>
+				<label for="us-storage">
+					Storage
+					<input id="us-storage" name="storage" placeholder="50Gi"/>
+				</label>
+				<label for="us-gpu">
+					GPUs
+					<input id="us-gpu" type="number" min="0" name="gpu" placeholder="0"/>
+				</label>
+				<label for="us-workspaces">
+					Running workspaces
+					<input id="us-workspaces" type="number" min="0" name="workspaces" placeholder="2"/>
+				</label>
+			</details>
+			<div class="dialog-actions">
+				<button type="button" class="secondary" data-dialog-close="add-user-dialog">Cancel</button>
+				<button type="submit">Create</button>
+			</div>
+		</form>
+	</dialog>
+}
+
+templ addUserAction() {
+	<button type="button" data-dialog-open="add-user-dialog">Add user</button>
+}

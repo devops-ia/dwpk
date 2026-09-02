@@ -1,0 +1,19 @@
+apiVersion: dwpk.devops-ia.io/v1alpha1
+kind: ImageRegistry
+metadata:
+  labels:
+    app.kubernetes.io/name: dwpk
+    app.kubernetes.io/managed-by: kustomize
+  name: team-ecr
+spec:
+  provider: aws-ecr
+  aws:
+    region: eu-west-1
+  sync:
+    intervalSeconds: 900
+    include: ["dwpk/.*"]
+    exclude: ["dwpk/scratch.*"]
+    tags:
+      mode: latest
+      limit: 1
+    prune: false

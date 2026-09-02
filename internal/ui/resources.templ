@@ -1,0 +1,79 @@
+package ui
+
+// resourceFields is the one place a workspace's shape is asked for.
+//
+// A table, because that is what it is: a row per resource, a column for the
+// number that matters most for it. For memory, storage and GPU that is a
+// ceiling - Kubernetes fills a request in from the limit when none is given,
+// the same "only a maximum" model the quota screen uses. CPU is the one
+// exception, deliberately: it is a request with no ceiling at all, so it is
+// never artificially throttled (see ResourceValues.Requirements).
+//
+// GPU and Storage take one value each, not because of a layout shortcut: a PVC
+// has a single size, and Kubernetes refuses an extended resource whose request
+// and limit differ, so a GPU has one number by rule.
+//
+// storageLocked is a reason string rather than a bool (no boolean
+// parameters): empty keeps Storage editable, as it is at creation; a
+// non-empty string disables the input and shows itself as the reason - used
+// by the edit form, where storage is immutable and CEL-enforced.
+templ resourceFields(values ResourceValues, storageLocked string) {
+	<fieldset class="resource-fields">
+		<legend>Resources</legend>
+		<p class="hint">
+			Request is the ceiling the workspace may use - except CPU, which has no
+			ceiling and is reserved instead (see below).
+		</p>
+		<div class="table-scroll" tabindex="0" role="region" aria-label="Table, scrollable">
+			<table class="admin-table resource-table">
+				<thead>
+					<tr>
+						<th>Resource</th>
+						<th>Request</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr>
+						<th scope="row"><label for="cpu-request">CPU</label></th>
+						<td>
+							<input id="cpu-request" name="cpu_request" value={ values.CPU } placeholder="2" aria-label="CPU request"/>
+							<span class="hint">Reserved for the workspace. No ceiling is set, so it may use more when the node has spare CPU - intentional: a CPU limit throttles a container even when nothing else needs the CPU it's using.</span>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="memory-limit">Memory</label></th>
+						<td><input id="memory-limit" name="memory_limit" value={ values.MemoryLimit } placeholder="4Gi" aria-label="Maximum memory"/></td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="ws-gpu">GPU</label></th>
+						<td>
+							<input id="ws-gpu" type="number" min="0" name="gpu" value={ values.GPU } aria-label="GPUs"/>
+							<span class="hint">One number: Kubernetes requires a GPU's request and limit to match.</span>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><label for="ws-storage">Storage</label></th>
+						<td>
+							if storageLocked != "" {
+								<input id="ws-storage" name="storage" value={ values.Storage } disabled aria-label="Storage"/>
+								<span class="hint">{ storageLocked }</span>
+							} else {
+								<input id="ws-storage" name="storage" required value={ values.Storage } aria-label="Storage"/>
+								<span class="hint">The home volume has one size. It survives stopping, and cannot be shrunk once created.</span>
+							}
+						</td>
+					</tr>
+				</tbody>
+			</table>
+		</div>
+		<label for="ws-gpu-resource">
+			GPU resource name
+			<input id="ws-gpu-resource" name="gpu_resource" value={ values.GPUResource }/>
+			<span class="hint">
+				Requested as this extended resource. Change it for other hardware -
+				<code>amd.com/gpu</code>, or a MIG slice. Only the platform's
+				configured name is counted by the GPU quota.
+			</span>
+		</label>
+	</fieldset>
+}

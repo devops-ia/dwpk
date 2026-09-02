@@ -1,0 +1,192 @@
+package ui
+
+import "fmt"
+
+// AdminRegistriesPage lists configured ImageRegistrys that feed the catalog
+// (§UI: Catalog filters and links back by name). Same <details>-per-entry
+// shape as catalogEntry: an AWS block plus regex lists is exactly the "eight
+// fields, no table cell holds it legibly" case that pattern exists for.
+templ AdminRegistriesPage(data AdminRegistriesData) {
+	@pageHeader("Registries", "Sync the catalog automatically from an external container registry.", registriesHeaderActions())
+	<section class="panel">
+		if data.Notice != "" {
+			<p class="notice" role="status">{ data.Notice }</p>
+		}
+		<p class="hint">
+			A synced entry is labelled with the registry that created it, on the
+			<a href={ linkPath(ctx, catalogAdminPath) }>Catalog</a> screen, and is
+			overwritten on its next sync.
+		</p>
+		if data.Error != "" {
+			<p class="error">{ data.Error }</p>
+		}
+	</section>
+	<section class="catalog-admin-grid">
+		for _, row := range data.Rows {
+			@registryEntry(row, data.Session.CSRFToken)
+		}
+	</section>
+	if len(data.Rows) == 0 {
+		<section class="panel">
+			<div class="empty-state">
+				<p><strong>No registries configured.</strong></p>
+				<p class="muted">Add one to sync catalog entries automatically.</p>
+			</div>
+		</section>
+	}
+	@addRegistryDialog(data)
+}
+
+templ registryEntry(row RegistryRow, csrfToken string) {
+	<details class="entry">
+		<summary>
+			<span class="entry-name">{ row.Name }</span>
+			<span class="muted">{ row.Provider }</span>
+			@statusChip(row.Status)
+			<span class="muted">{ fmt.Sprintf("%d", row.Images) } images · synced { row.LastSync }</span>
+		</summary>
+		if row.Message != "" {
+			<p class="hint">{ row.Message }</p>
+		}
+		<form action={ linkPath(ctx, "/admin/registries/"+row.Name+"/update") } method="post" class="stack-form">
+			<input type="hidden" name="csrf_token" value={ csrfToken }/>
+			<label for={ "region-" + row.Name }>
+				AWS region
+				<input id={ "region-" + row.Name } name="region" value={ row.Region } required/>
+			</label>
+			<label for={ "registry-id-" + row.Name }>
+				AWS account ID
+				<input id={ "registry-id-" + row.Name } name="registryId" value={ row.RegistryID } placeholder="the credentials' own account"/>
+			</label>
+			<label for={ "role-arn-" + row.Name }>
+				Role ARN
+				<input id={ "role-arn-" + row.Name } name="roleArn" value={ row.RoleARN } placeholder="optional, for a cross-account registry"/>
+			</label>
+			<label for={ "interval-" + row.Name }>
+				Sync interval, seconds
+				<input id={ "interval-" + row.Name } type="number" name="intervalSeconds" min="60" value={ fmt.Sprintf("%d", row.IntervalSeconds) }/>
+			</label>
+			<label for={ "include-" + row.Name }>
+				Include patterns
+				<textarea id={ "include-" + row.Name } name="include" placeholder="one RE2 pattern per line, empty means every repository" rows="3">{ row.Include }</textarea>
+			</label>
+			<label for={ "exclude-" + row.Name }>
+				Exclude patterns
+				<textarea id={ "exclude-" + row.Name } name="exclude" placeholder="wins over include" rows="3">{ row.Exclude }</textarea>
+				<span class="hint">One pattern per line. A repository matching an exclude pattern is skipped even if it also matches include.</span>
+			</label>
+			<label for={ "tag-mode-" + row.Name }>
+				Tag selection
+				<select id={ "tag-mode-" + row.Name } name="tagMode">
+					<option value="latest" selected?={ row.TagMode != "pattern" }>Newest tag only</option>
+					<option value="pattern" selected?={ row.TagMode == "pattern" }>Matching patterns</option>
+				</select>
+			</label>
+			<label for={ "tag-patterns-" + row.Name }>
+				Tag patterns
+				<textarea id={ "tag-patterns-" + row.Name } name="tagPatterns" placeholder="used only when Tag selection is Matching patterns" rows="2">{ row.TagPatterns }</textarea>
+			</label>
+			<label for={ "tag-limit-" + row.Name }>
+				Tags per repository
+				<input id={ "tag-limit-" + row.Name } type="number" name="tagLimit" min="1" value={ fmt.Sprintf("%d", row.TagLimit) }/>
+				<span class="hint">Newest matching tags become catalog entries, up to this many per repository.</span>
+			</label>
+			<label class="checkbox">
+				<input type="checkbox" name="prune" value="true" checked?={ row.Prune }/>
+				Delete a synced entry once its remote image is gone
+			</label>
+			<label for={ "pull-secret-reg-" + row.Name }>
+				Image pull secret
+				<input id={ "pull-secret-reg-" + row.Name } name="imagePullSecret" value={ row.ImagePullSecret } placeholder="ecr-pull"/>
+				<span class="hint">Stamped onto every entry this registry syncs. dwpk replicates the named Secret into every user namespace.</span>
+			</label>
+			<div class="dialog-actions">
+				<button type="submit">Save</button>
+			</div>
+		</form>
+		<form action={ linkPath(ctx, "/admin/registries/"+row.Name+"/force-sync") } method="post">
+			<input type="hidden" name="csrf_token" value={ csrfToken }/>
+			<button type="submit" class="secondary">Force sync</button>
+		</form>
+		<div class="entry-delete">
+			@confirmDelete(
+				"delete-registry-"+row.Name,
+				"registry "+row.Name,
+				string(linkPath(ctx, "/admin/registries/"+row.Name+"/delete")),
+				csrfToken,
+				[]string{
+					"The registry stops syncing immediately.",
+					"Every WorkspaceImage it synced is deleted too - workspaces already running one keep running.",
+				},
+			)
+		</div>
+	</details>
+}
+
+templ addRegistryDialog(data AdminRegistriesData) {
+	<dialog id="add-registry-dialog" class="panel-dialog">
+		<form action={ linkPath(ctx, "/admin/registries") } method="post" class="stack-form">
+			<h2>Add registry</h2>
+			<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+			<label for="reg-name">
+				Name
+				<input id="reg-name" name="name" required placeholder="team-ecr"/>
+			</label>
+			<label for="reg-region">
+				AWS region
+				<input id="reg-region" name="region" required placeholder="eu-west-1"/>
+			</label>
+			<label for="reg-registry-id">
+				AWS account ID
+				<input id="reg-registry-id" name="registryId" placeholder="the credentials' own account"/>
+			</label>
+			<label for="reg-role-arn">
+				Role ARN
+				<input id="reg-role-arn" name="roleArn" placeholder="optional, for a cross-account registry"/>
+			</label>
+			<label for="reg-interval">
+				Sync interval, seconds
+				<input id="reg-interval" type="number" name="intervalSeconds" min="60" value="900"/>
+			</label>
+			<label for="reg-include">
+				Include patterns
+				<textarea id="reg-include" name="include" placeholder="one RE2 pattern per line, empty means every repository" rows="3"></textarea>
+			</label>
+			<label for="reg-exclude">
+				Exclude patterns
+				<textarea id="reg-exclude" name="exclude" placeholder="wins over include" rows="3"></textarea>
+			</label>
+			<label for="reg-tag-mode">
+				Tag selection
+				<select id="reg-tag-mode" name="tagMode">
+					<option value="latest">Newest tag only</option>
+					<option value="pattern">Matching patterns</option>
+				</select>
+			</label>
+			<label for="reg-tag-patterns">
+				Tag patterns
+				<textarea id="reg-tag-patterns" name="tagPatterns" placeholder="used only when Tag selection is Matching patterns" rows="2"></textarea>
+			</label>
+			<label for="reg-tag-limit">
+				Tags per repository
+				<input id="reg-tag-limit" type="number" name="tagLimit" min="1" value="1"/>
+			</label>
+			<label class="checkbox">
+				<input type="checkbox" name="prune" value="true"/>
+				Delete a synced entry once its remote image is gone
+			</label>
+			<label for="reg-pull-secret">
+				Image pull secret
+				<input id="reg-pull-secret" name="imagePullSecret" placeholder="ecr-pull"/>
+			</label>
+			<div class="dialog-actions">
+				<button type="button" class="secondary" data-dialog-close="add-registry-dialog">Cancel</button>
+				<button type="submit">Create</button>
+			</div>
+		</form>
+	</dialog>
+}
+
+templ registriesHeaderActions() {
+	<button type="button" data-dialog-open="add-registry-dialog">Add registry</button>
+}

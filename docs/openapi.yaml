@@ -1,0 +1,1179 @@
+openapi: 3.0.3
+info:
+  title: dwpk REST API
+  description: >-
+    A JSON API over the same operations the dwpk web UI performs, so a script
+    can drive the platform without a browser. It is a convenience over the
+    Kubernetes API, never a way around it: every call runs against the
+    Kubernetes API server with the caller's own forwarded ServiceAccount
+    token, so RBAC decides what succeeds exactly as it would for `kubectl` or
+    the browser UI. See `docs/API_REFERENCE.md` for the prose version of this
+    document and the underlying CRD schemas.
+  version: v1alpha1
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+  - url: /api/v1
+security:
+  - cookieAuth: []
+  - bearerAuth: []
+tags:
+  - name: session
+    description: Login, logout and "who am I".
+  - name: workspaces
+    description: A user's own Workspace objects.
+  - name: catalog
+    description: WorkspaceImage marketplace entries.
+  - name: tokens
+    description: Long-lived API bearer tokens.
+  - name: admin
+    description: Administrator-only UserSpace, quota and local-user management.
+  - name: profile
+    description: The caller's own password.
+paths:
+  /login:
+    post:
+      operationId: postLogin
+      tags: [session]
+      summary: Local username/password login
+      description: >-
+        Exchanges a local username/password pair for the same server-side
+        session an OAuth2 login creates. 404s when local login is disabled.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '204':
+          description: >-
+            Signed in. The session cookie is set via `Set-Cookie`; the CSRF
+            token for later writes comes back in the `X-CSRF-Token` header.
+          headers:
+            X-CSRF-Token:
+              schema:
+                type: string
+        '401':
+          description: Invalid username or password.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Local login is not enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /session:
+    get:
+      operationId: getSession
+      tags: [session]
+      summary: Who the caller is
+      responses:
+        '200':
+          description: Identity behind the current session or bearer token.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /logout:
+    post:
+      operationId: postLogout
+      tags: [session]
+      summary: End the current session
+      description: >-
+        Cookie sessions only. A bearer-authenticated caller has no session to
+        end - revoke the token instead with `DELETE /tokens/{name}`.
+      responses:
+        '204':
+          description: Session ended; cookie cleared.
+        '400':
+          description: Called with a bearer token instead of a cookie session.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /workspaces:
+    get:
+      operationId: getWorkspaces
+      tags: [workspaces]
+      summary: List workspaces
+      description: >-
+        Scoped by role: an administrator lists the whole cluster, everyone
+        else only their own namespace.
+      parameters:
+        - name: namespace
+          in: query
+          description: Narrows the (already role-scoped) result to one namespace.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workspaces the caller may see.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: postWorkspaces
+      tags: [workspaces]
+      summary: Create a workspace
+      description: Always created in the caller's own namespace.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateWorkspaceRequest'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /workspaces/{name}:
+    get:
+      operationId: getWorkspacesName
+      tags: [workspaces]
+      summary: Get one workspace
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceName'
+        - name: namespace
+          in: query
+          description: Reach a workspace you can see but do not own.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteWorkspacesName
+      tags: [workspaces]
+      summary: Delete a workspace
+      description: >-
+        Deletes the workspace, and by default its home PVC
+        (`home-{name}-0`) too - a StatefulSet never removes its own claim, so
+        this does it explicitly, matching the web UI's delete dialog (also
+        checked by default). Pass `delete_volume=false` to keep the PVC.
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceName'
+        - name: namespace
+          in: query
+          schema:
+            type: string
+        - name: delete_volume
+          in: query
+          description: Set to `false` to keep the home PVC. Anything else deletes it.
+          schema:
+            type: string
+            default: 'true'
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: >-
+            The workspace was deleted but its home PVC delete failed; the
+            message names exactly what is left.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /workspaces/{name}/start:
+    post:
+      operationId: postWorkspacesNameStart
+      tags: [workspaces]
+      summary: Start a workspace
+      description: Patches `spec.running` to `true`.
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceName'
+        - name: namespace
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /workspaces/{name}/stop:
+    post:
+      operationId: postWorkspacesNameStop
+      tags: [workspaces]
+      summary: Stop a workspace
+      description: Patches `spec.running` to `false`.
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceName'
+        - name: namespace
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workspace'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /workspaces/{name}/logs:
+    get:
+      operationId: getWorkspacesNameLogs
+      tags: [workspaces]
+      summary: Tail a workspace's container logs
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceName'
+        - name: namespace
+          in: query
+          schema:
+            type: string
+        - name: tail
+          in: query
+          description: Number of lines from the end. Defaults to 200, matching the UI's Logs tab.
+          schema:
+            type: integer
+            default: 200
+            minimum: 1
+      responses:
+        '200':
+          description: Log tail.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The workspace has no running pod; start it first.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /workspace-images:
+    get:
+      operationId: getWorkspaceImages
+      tags: [catalog]
+      summary: List catalog entries the caller may use
+      responses:
+        '200':
+          description: Visible catalog entries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceImageList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: postWorkspaceImages
+      tags: [catalog]
+      summary: Create a catalog entry
+      description: Administrator only, over REST exactly as in the web UI's catalog admin screen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceImageRequest'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceImage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /workspace-images/{name}:
+    get:
+      operationId: getWorkspaceImagesName
+      tags: [catalog]
+      summary: Get one catalog entry
+      parameters:
+        - $ref: '#/components/parameters/ImageName'
+      responses:
+        '200':
+          description: The catalog entry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceImage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      operationId: patchWorkspaceImagesName
+      tags: [catalog]
+      summary: Edit a catalog entry
+      description: >-
+        Administrator only. `metadata.name` is create-only - omitted fields
+        keep their current value, matching every other PATCH in this API.
+      parameters:
+        - $ref: '#/components/parameters/ImageName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceImageRequest'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceImage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteWorkspaceImagesName
+      tags: [catalog]
+      summary: Delete a catalog entry
+      description: Administrator only.
+      parameters:
+        - $ref: '#/components/parameters/ImageName'
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /image-registries:
+    get:
+      operationId: getImageRegistries
+      tags: [catalog]
+      summary: List configured registries
+      responses:
+        '200':
+          description: Configured registries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageRegistryList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: postImageRegistries
+      tags: [catalog]
+      summary: Configure a registry to sync into the catalog
+      description: Administrator only, over REST exactly as in the web UI's catalog admin screen.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageRegistryRequest'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageRegistry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /image-registries/{name}:
+    get:
+      operationId: getImageRegistriesName
+      tags: [catalog]
+      summary: Get one registry
+      parameters:
+        - $ref: '#/components/parameters/RegistryName'
+      responses:
+        '200':
+          description: The registry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageRegistry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      operationId: patchImageRegistriesName
+      tags: [catalog]
+      summary: Edit a registry
+      description: >-
+        Administrator only. `name` and `provider` are create-only - every
+        other field is optional on PATCH, where an omitted key keeps its
+        current value.
+      parameters:
+        - $ref: '#/components/parameters/RegistryName'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageRegistryRequest'
+      responses:
+        '200':
+          description: Updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageRegistry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteImageRegistriesName
+      tags: [catalog]
+      summary: Delete a registry
+      description: Administrator only. Every WorkspaceImage it synced is deleted too.
+      parameters:
+        - $ref: '#/components/parameters/RegistryName'
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /image-registries/{name}/force-sync:
+    post:
+      operationId: postImageRegistriesNameForceSync
+      tags: [catalog]
+      summary: Retrigger a sync outside its configured interval
+      description: >-
+        Administrator only. Bumps the dwpk.devops-ia.io/force-sync
+        annotation; the sync itself happens asynchronously.
+      parameters:
+        - $ref: '#/components/parameters/RegistryName'
+      responses:
+        '202':
+          description: Sync requested.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /tokens:
+    get:
+      operationId: getTokens
+      tags: [tokens]
+      summary: List the caller's own API tokens
+      responses:
+        '200':
+          description: Tokens. Plaintext values are never included here.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      operationId: postTokens
+      tags: [tokens]
+      summary: Issue a new API token
+      responses:
+        '201':
+          description: >-
+            Issued. `token` carries the plaintext value, returned only by this
+            call and never recoverable afterwards.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /tokens/{name}:
+    delete:
+      operationId: deleteTokensName
+      tags: [tokens]
+      summary: Revoke an API token
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Revoked.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /profile/password:
+    post:
+      operationId: postProfilePassword
+      tags: [profile]
+      summary: Change the caller's own local password
+      description: >-
+        The account comes from the session, never from the body - there is
+        no way to change another user's password through this endpoint.
+        Only a session that signed in with a username and password may use
+        this. A session established through an identity provider (Entra ID,
+        Google, GitLab, Keycloak, GitHub) is refused with 409, because the
+        provider owns those credentials - and that holds even when the same
+        person also has a local account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordRequest'
+      responses:
+        '204':
+          description: Password changed.
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: >-
+            This session has no password to change here - it signed in through an
+            identity provider, or the account has no local credential.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/userspaces:
+    get:
+      operationId: getAdminUserspaces
+      tags: [admin]
+      summary: List every UserSpace
+      responses:
+        '200':
+          description: Every UserSpace, with its quota and role.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSpaceList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      operationId: postAdminUserspaces
+      tags: [admin]
+      summary: Provision a new UserSpace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSpaceRequest'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSpace'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/userspaces/{name}:
+    patch:
+      operationId: patchAdminUserspacesName
+      tags: [admin]
+      summary: Update a UserSpace's role or disabled flag
+      description: Omitted fields keep their current value.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipRequest'
+      responses:
+        '200':
+          description: Updated membership.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSpaceMembership'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      operationId: deleteAdminUserspacesName
+      tags: [admin]
+      summary: Delete a UserSpace
+      description: >-
+        Deletes the UserSpace object, not its Kubernetes namespace - the
+        controller's own finalizer handles that asynchronously.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/quota:
+    get:
+      operationId: getAdminQuota
+      tags: [admin]
+      summary: Usage against limit for every UserSpace
+      responses:
+        '200':
+          description: Quota usage list.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserSpace'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/quota/{name}:
+    patch:
+      operationId: patchAdminQuotaName
+      tags: [admin]
+      summary: Update one UserSpace's quota
+      description: Omitted fields keep their current value.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaRequest'
+      responses:
+        '200':
+          description: Updated quota.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSpaceQuota'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /admin/local-users:
+    get:
+      operationId: getAdminLocalUsers
+      tags: [admin]
+      summary: List local users
+      description: Only available when local authentication is enabled.
+      responses:
+        '200':
+          description: Local users.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocalUserList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Local user management is not enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      operationId: postAdminLocalUsers
+      tags: [admin]
+      summary: Create a local user
+      description: Only available when local authentication is enabled.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LocalUserRequest'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocalUserResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Local user management is not enabled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /admin/local-users/{name}:
+    delete:
+      operationId: deleteAdminLocalUsersName
+      tags: [admin]
+      summary: Delete a local user
+      description: Only available when local authentication is enabled.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Deleted.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: dwpk_session
+      description: >-
+        Set by `POST /login`. Every mutating request must also carry the CSRF
+        token (from the login response header, or `GET /session`) as
+        `X-CSRF-Token` - a cookie rides along on any cross-site request, a
+        header does not.
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: >-
+        A token from `POST /tokens`. No CSRF token is needed, since there is
+        no cookie to ride on.
+  parameters:
+    WorkspaceName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+    ImageName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+    RegistryName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: The request body or a parameter was invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Missing or invalid session cookie / bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: >-
+        The caller's own forwarded Kubernetes token was denied by RBAC - the
+        same rule and message a `kubectl` user with the same identity would see.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: No object with that name (or, for `namespace=`, in that namespace).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required: [username, password]
+    SessionResponse:
+      type: object
+      properties:
+        email:
+          type: string
+        userspace:
+          type: string
+        namespace:
+          type: string
+        role:
+          type: string
+        csrf_token:
+          type: string
+    CreateWorkspaceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        image:
+          type: string
+          description: WorkspaceImage catalog entry name.
+        cpu:
+          type: string
+          description: Kubernetes quantity, e.g. "500m". Used as both request and limit.
+        memory:
+          type: string
+          description: Kubernetes quantity, e.g. "2Gi". Used as both request and limit.
+        gpu:
+          type: string
+          description: Optional GPU quantity, e.g. "1".
+        storage:
+          type: string
+          description: Kubernetes quantity for the home PVC. Immutable once set.
+        ssh_public_key:
+          type: string
+          description: OpenSSH public key accepted by the gateway.
+      required: [name, image, storage, ssh_public_key]
+    Workspace:
+      type: object
+      description: >-
+        The Kubernetes `Workspace` object as-is - see `docs/API_REFERENCE.md`
+        for the full CRD field table.
+      additionalProperties: true
+    WorkspaceList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Workspace'
+    WorkspaceImage:
+      type: object
+      description: >-
+        The Kubernetes `WorkspaceImage` object as-is - see
+        `docs/API_REFERENCE.md` for the full CRD field table.
+      additionalProperties: true
+    WorkspaceImageList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceImage'
+    WorkspaceImageRequest:
+      type: object
+      description: >-
+        `name` and `image` are required on create; every field is optional on
+        PATCH, where an omitted key keeps its current value.
+      properties:
+        name:
+          type: string
+        image:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        deprecated:
+          type: boolean
+    ImageRegistry:
+      type: object
+      description: >-
+        The Kubernetes `ImageRegistry` object as-is - see
+        `docs/API_REFERENCE.md` for the full CRD field table.
+      additionalProperties: true
+    ImageRegistryList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageRegistry'
+    ImageRegistryRequest:
+      type: object
+      description: >-
+        `name` and `region` are required on create; every other field is
+        optional on PATCH, where an omitted key keeps its current value.
+      properties:
+        name:
+          type: string
+        region:
+          type: string
+        registry_id:
+          type: string
+          description: AWS account ID. Empty resolves to the credentials' own account.
+        role_arn:
+          type: string
+          description: Assumed via STS before listing, for a registry in another account.
+        interval_seconds:
+          type: integer
+          description: How often the registry is re-listed. Minimum 60.
+        include:
+          type: array
+          items:
+            type: string
+          description: RE2 patterns matched against a repository name.
+        exclude:
+          type: array
+          items:
+            type: string
+          description: Wins over include when both match.
+        tag_mode:
+          type: string
+          enum: [latest, pattern]
+        tag_patterns:
+          type: array
+          items:
+            type: string
+        tag_limit:
+          type: integer
+          description: Newest matching tags per repository, minimum 1.
+        prune:
+          type: boolean
+          description: Delete a synced entry once its remote image is gone.
+        image_pull_secret:
+          type: string
+          description: Names a Secret dwpk replicates into every user namespace.
+    UserSpace:
+      type: object
+      description: >-
+        The Kubernetes `UserSpace` object as-is - see
+        `docs/API_REFERENCE.md` for the full CRD field table.
+      additionalProperties: true
+    UserSpaceList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserSpace'
+    UserSpaceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        owner:
+          type: string
+          description: Email or Kubernetes username that will own this space.
+        role:
+          type: string
+          enum: [user, admin]
+      required: [name, owner]
+    UserSpaceQuota:
+      type: object
+      properties:
+        cpu:
+          type: string
+        memory:
+          type: string
+        storage:
+          type: string
+        gpu:
+          type: integer
+        workspaces:
+          type: integer
+    QuotaRequest:
+      type: object
+      description: Every field optional; an omitted key keeps its current value.
+      properties:
+        workspaces:
+          type: integer
+        cpu:
+          type: string
+        memory:
+          type: string
+        storage:
+          type: string
+        gpu:
+          type: integer
+    MembershipRequest:
+      type: object
+      description: Every field optional; an omitted key keeps its current value.
+      properties:
+        role:
+          type: string
+          enum: [user, admin]
+        disabled:
+          type: boolean
+    UserSpaceMembership:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: string
+        disabled:
+          type: boolean
+    Token:
+      type: object
+      properties:
+        name:
+          type: string
+        namespace:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        token:
+          type: string
+          description: Plaintext value. Present only on the issuing response.
+    TokenList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Token'
+    LocalUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        owner:
+          type: string
+      required: [username, password, owner]
+    LocalUserResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        username:
+          type: string
+        owner:
+          type: string
+    LocalUserList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LocalUserResponse'
+    PasswordRequest:
+      type: object
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+      required: [current_password, new_password]
+    LogsResponse:
+      type: object
+      properties:
+        namespace:
+          type: string
+        pod:
+          type: string
+        lines:
+          type: string

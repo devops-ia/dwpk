@@ -1,0 +1,327 @@
+package ui
+
+import (
+	"fmt"
+	"net/http"
+)
+
+// PageShell says what kind of page this is. It is a struct rather than four
+// positional arguments because "Layout(title, session, true, false, content)"
+// tells a reader nothing about which flag is which.
+type PageShell struct {
+	Title string
+	// Signed in: the sidebar shell. Signed out: the centred auth shell.
+	Authenticated bool
+	// Bare drops all navigation - used by the pop-out terminal window, which is
+	// meant to live on a second monitor with nothing else on it.
+	Bare bool
+	// Terminal pulls in xterm. It is nearly half a megabyte, so only the two
+	// pages that show a terminal pay for it.
+	Terminal bool
+}
+
+templ Layout(shell PageShell, session RequestSession, content templ.Component) {
+	<!DOCTYPE html>
+	<html lang="en" data-theme={ themeOf(ctx) } hx-headers={ csrfHeadersJSON(session.CSRFToken) }>
+		<head>
+			<meta charset="utf-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<title>{ shell.Title } · { platformName(ctx) }</title>
+			if hasPlatformLogo(ctx) {
+				<link rel="icon" href={ linkPath(ctx, "/logo") }/>
+			}
+			// htmx injects a <style> element for .htmx-indicator at load, which the
+			// application's `default-src 'self'` CSP refuses. app.css carries those
+			// rules instead, so the class still works and the console stays clean.
+			<meta name="htmx-config" content='{"includeIndicatorStyles":false}'/>
+			<link rel="stylesheet" href={ linkPath(ctx, "/assets/app.css") }/>
+			if shell.Terminal {
+				<link rel="stylesheet" href={ linkPath(ctx, "/assets/vendor/xterm.css") }/>
+				<script src={ linkPath(ctx, "/assets/vendor/xterm.js") } defer></script>
+				<script src={ linkPath(ctx, "/assets/vendor/xterm-addon-fit.js") } defer></script>
+			}
+			<script src={ linkPath(ctx, "/assets/htmx.min.js") } defer></script>
+			<script src={ linkPath(ctx, "/assets/app.js") } defer></script>
+		</head>
+		<body data-base-path={ basePathOf(ctx) }>
+			if shell.Bare {
+				<main class="page page-bare">
+					@content
+				</main>
+			} else if shell.Authenticated {
+				<div class="shell">
+					@sidebar(session)
+					<div>
+						<div class="drawer-bar">
+							@brandMark()
+							<button type="button" class="icon drawer-toggle" data-dialog-open="command-palette" aria-haspopup="dialog" aria-label="Open navigation"></button>
+						</div>
+						<main class={ pageClass(shell.Authenticated) }>
+							@content
+						</main>
+					</div>
+				</div>
+				@commandPalette(session)
+			} else {
+				<header class="topbar">
+					@brandMark()
+					<div class="topbar-actions">
+						@themeToggle()
+					</div>
+				</header>
+				<main class={ pageClass(shell.Authenticated) }>
+					@content
+				</main>
+			}
+			<div id="live-region" class="visually-hidden" role="status" aria-live="polite"></div>
+		</body>
+	</html>
+}
+
+// statusChip renders a CR state. The tone is carried by a class and the state
+// name is still spelled out: colour alone would leave a colour-blind reader
+// with nothing.
+templ statusChip(state string) {
+	if state == "" {
+		<span class="muted">-</span>
+	} else {
+		<span class={ "status-chip", "status-" + statusTone(state) }>{ state }</span>
+	}
+}
+
+// sidebar replaces the old top bar. Seven destinations in a row wrapped on any
+// narrow window and gave no sense of which section you were in; a column has
+// room to group them and to mark the current one.
+templ sidebar(session RequestSession) {
+	<nav class="sidebar" aria-label="Main">
+		@brandMark()
+		<div class="sidebar-group">
+			<h2 class="sidebar-heading">Work</h2>
+			@navLink("/", "Overview")
+			@navLink("/admin/workspaces", "Workspaces")
+			@navLink("/catalog", "Catalog")
+			@navLink("/profile", "My profile")
+			@apiDocsLink()
+			if session.Identity.OnboardingPending {
+				@onboardingLink()
+			}
+		</div>
+		// Navigation follows the role. A plain user was previously offered four
+		// links that all ended in the API server's 403 - the refusal was correct
+		// but the invitation was not. A manager administers projects and nothing
+		// else, so that is the only administration link they see.
+		//
+		// This hides links; it grants nothing. Every one of these screens is
+		// still gated by the caller's own RBAC, so typing the URL gets the same
+		// answer it always did (SPEC §8.1).
+		if isAdmin(session) {
+			<div class="sidebar-group">
+				<h2 class="sidebar-heading">Administration</h2>
+				if isAdmin(session) {
+					@navLink(catalogAdminPath, "Catalog")
+					@navLink(registriesAdminPath, "Registries")
+					@navLink("/admin/settings", "Global")
+					@navLink("/admin/overview", "Overview")
+				}
+				if isAdmin(session) {
+					@navLink("/admin/quota", "Quota")
+					@navLink("/admin/users", "Users")
+				}
+			</div>
+		}
+		<div class="sidebar-footer">
+			@themeToggle()
+			<form action={ linkPath(ctx, "/logout") } method="post" class="logout-form">
+				<input type="hidden" name="csrf_token" value={ session.CSRFToken }/>
+				<button type="submit" class="secondary">Log out</button>
+			</form>
+		</div>
+	</nav>
+}
+
+templ navLink(path, label string) {
+	<a
+		href={ linkPath(ctx, path) }
+		class={ "nav-link", templ.KV("nav-link-current", currentPathOf(ctx) == path) }
+		aria-current={ ariaCurrent(currentPathOf(ctx) == path) }
+	>{ label }</a>
+}
+
+// apiDocsLink is not a navLink: /api/docs is a standalone Swagger UI page with
+// none of this chrome, so following it in place would strand the reader with no
+// way back. It opens in a tab instead. rel="noopener" because target="_blank"
+// otherwise hands the new page a reference to this one.
+templ apiDocsLink() {
+	<a href={ linkPath(ctx, "/api/docs") } class="nav-link" target="_blank" rel="noopener">
+		API docs
+	</a>
+}
+
+// onboardingLink is marked out from its neighbours because the wizard is
+// optional: nothing else brings it up, and a first-time user who dismisses it
+// by navigating away has to be able to find it again.
+templ onboardingLink() {
+	<a
+		href={ linkPath(ctx, onboardingPath) }
+		class={ "nav-link", "nav-link-callout", templ.KV("nav-link-current", currentPathOf(ctx) == onboardingPath) }
+		aria-current={ ariaCurrent(currentPathOf(ctx) == onboardingPath) }
+	>Get started</a>
+}
+
+templ themeToggle() {
+	<button
+		type="button"
+		class="theme-toggle"
+		data-theme-toggle
+		aria-label="Switch between light and dark theme"
+		aria-pressed={ ariaPressed(themeOf(ctx) == "dark") }
+	></button>
+}
+
+// commandPalette is a dialog over the same links the sidebar carries, opened
+// with ⌘K. It exists because the sidebar collapses on a narrow window and
+// because a keyboard user should not have to tab through a page to change
+// section.
+templ commandPalette(session RequestSession) {
+	<dialog id="command-palette" class="palette" aria-label="Go to">
+		<input
+			type="search"
+			class="palette-input"
+			data-palette-filter
+			placeholder="Go to…"
+			aria-label="Filter destinations"
+			autocomplete="off"
+		/>
+		<ul class="palette-list">
+			@paletteItem("/", "Overview")
+			@paletteItem("/admin/workspaces", "Workspaces")
+			@paletteItem("/catalog", "Catalog")
+			@paletteItem("/profile", "My profile")
+			if session.Identity.OnboardingPending {
+				@paletteItem(onboardingPath, "Get started")
+			}
+			if isAdmin(session) {
+				@paletteItem(catalogAdminPath, "Catalog administration")
+				@paletteItem("/admin/settings", "Global settings")
+				@paletteItem("/admin/overview", "Administration overview")
+			}
+			if isAdmin(session) {
+				@paletteItem("/admin/quota", "Quota")
+				@paletteItem("/admin/users", "Users")
+			}
+		</ul>
+		<div class="palette-footer">
+			@themeToggle()
+			<form action={ linkPath(ctx, "/logout") } method="post" class="logout-form">
+				<input type="hidden" name="csrf_token" value={ session.CSRFToken }/>
+				<button type="submit" class="secondary">Log out</button>
+			</form>
+		</div>
+		<p class="palette-hint">Enter to go · Esc to close</p>
+	</dialog>
+}
+
+templ paletteItem(path, label string) {
+	<li><a href={ linkPath(ctx, path) } data-palette-item>{ label }</a></li>
+}
+
+// confirmDelete is the one confirmation used by every destructive button. The
+// consequences are passed in rather than generated, because "this cannot be
+// undone" is true everywhere and useful nowhere: what a reader needs to know is
+// which of their things survives and which does not.
+//
+// <dialog> supplies the focus trap, Esc and the backdrop. The POST form lives
+// inside it, so the button on the page opens a question and only the button in
+// the dialog acts.
+templ confirmDelete(id, subject, action, csrfToken string, consequences []string) {
+	<button type="button" class="danger row-action" data-dialog-open={ id } aria-haspopup="dialog">Delete</button>
+	<dialog id={ id } class="panel-dialog" aria-labelledby={ id + "-title" }>
+		<h2 id={ id + "-title" }>Delete { subject }?</h2>
+		<ul class="entry-list">
+			for _, consequence := range consequences {
+				<li class="entry">{ consequence }</li>
+			}
+		</ul>
+		<form action={ templ.SafeURL(action) } method="post">
+			<input type="hidden" name="csrf_token" value={ csrfToken }/>
+			<div class="dialog-actions">
+				<button type="button" class="secondary" data-dialog-close={ id }>Cancel</button>
+				<button type="submit" class="danger">Delete { subject }</button>
+			</div>
+		</form>
+	</dialog>
+}
+
+// pageHeader replaces the bare <h1> every screen used to open with. Title,
+// what the screen is for, and the one action that belongs to it, in a fixed
+// relationship - so screens differ by their content rather than all reading as
+// the same panel with a heading on top.
+//
+// The action is a templ.Component rather than a string so a caller can pass a
+// form, a dialog trigger or a link without this needing to know which.
+templ pageHeader(title, description string, action templ.Component) {
+	<header class="page-header">
+		<div class="page-header-text">
+			<h1>{ title }</h1>
+			if description != "" {
+				<p>{ description }</p>
+			}
+		</div>
+		if action != nil {
+			<div class="page-header-actions">
+				@action
+			</div>
+		}
+	</header>
+}
+
+// pageControls renders the page-size choice and the page links. Both are plain
+// links carrying the current query, so a page is a real URL: shareable,
+// bookmarkable, and working with JavaScript switched off.
+templ pageControls[T any](page Page[T], path string, r *http.Request) {
+	@pageControlsWith(page, path, r, pageSizes)
+}
+
+// pageControlsWith renders the sizes a screen actually offers.
+templ pageControlsWith[T any](page Page[T], path string, r *http.Request, sizes []int) {
+	if page.Total > sizes[0] {
+		<nav class="page-controls" aria-label="Pagination">
+			<div class="page-sizes">
+				<span class="page-controls-label">Show</span>
+				for _, size := range sizes {
+					<a
+						href={ templ.SafeURL(pageQuery(r, linkPathString(ctx, path), size, 1)) }
+						class={ "chip", templ.KV("chip-selected", page.Size == size) }
+						aria-current={ ariaCurrent(page.Size == size) }
+					>{ pageSizeLabel(size) }</a>
+				}
+			</div>
+			if page.Pages > 1 {
+				<div class="page-numbers">
+					<span class="page-controls-label">
+						{ fmt.Sprintf("%d of %d", page.Number, page.Pages) }
+					</span>
+					for _, number := range pageNumbers(page.Pages) {
+						<a
+							href={ templ.SafeURL(pageQuery(r, linkPathString(ctx, path), page.Size, number)) }
+							class={ "chip", templ.KV("chip-selected", page.Number == number) }
+							aria-current={ ariaCurrent(page.Number == number) }
+						>{ fmt.Sprintf("%d", number) }</a>
+					}
+				</div>
+			}
+		</nav>
+	}
+}
+
+// brandMark is the platform's name, with its logo when one has been uploaded.
+// The built-in square is the fallback, drawn in CSS - the CSP forbids a data:
+// URI, so an inline default image is not an option.
+templ brandMark() {
+	<a class={ "brand", templ.KV("brand-logo", hasPlatformLogo(ctx)) } href={ linkPath(ctx, "/") }>
+		if hasPlatformLogo(ctx) {
+			<img src={ linkPath(ctx, "/logo") } alt="" width="24" height="24"/>
+		}
+		{ platformName(ctx) }
+	</a>
+}

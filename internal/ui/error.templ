@@ -1,0 +1,15 @@
+package ui
+
+import "fmt"
+
+templ ErrorPage(data ErrorData) {
+	<section class="panel narrow error-panel">
+		<h1>Error { fmt.Sprintf("%d", data.Status) }</h1>
+		<pre>{ data.Message }</pre>
+		if data.Session != nil {
+			<p><a href={ linkPath(ctx, "/") }>Back to catalog</a></p>
+		} else {
+			<p><a href={ linkPath(ctx, "/login") }>Back to login</a></p>
+		}
+	</section>
+}

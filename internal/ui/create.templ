@@ -1,0 +1,124 @@
+package ui
+
+import (
+	"fmt"
+
+	corev1 "k8s.io/api/core/v1"
+)
+
+templ CreateWorkspacePage(data CreateData) {
+	<section class="panel">
+		<h1>Create workspace</h1>
+		<p><strong>{ data.Image.Title() }</strong> · { data.Image.Spec.Description }</p>
+		<form
+			action={ linkPath(ctx, "/new") }
+			method="post"
+			class="stack-form"
+			hx-post={ string(linkPath(ctx, "/new/preview")) }
+			hx-target="#workspace-preview"
+			hx-swap="innerHTML"
+			hx-trigger="load, input changed delay:400ms, change"
+		>
+			<input type="hidden" name="csrf_token" value={ data.Session.CSRFToken }/>
+			<input type="hidden" name="image" value={ data.Image.Name }/>
+			<label for="ws-name">
+				Name
+				<input id="ws-name" type="text" name="name" required minlength="1" maxlength="63" pattern="[a-z0-9]([a-z0-9\-]*[a-z0-9])?"/>
+				<span class="hint">
+					Lowercase letters, digits and dashes. It must be unique among your
+					own workspaces; the API server refuses a repeat.
+				</span>
+			</label>
+			@resourceFields(data.Resources, "")
+			@envFields(nil)
+			<label for="ws-key">
+				SSH public key
+				if data.HasKeyOnFile {
+					<input id="ws-key" name="ssh_public_key" placeholder="Leave blank to use the keys on your profile"/>
+					<span class="hint">Blank uses the keys from your profile.</span>
+				} else {
+					<input id="ws-key" name="ssh_public_key" required placeholder="ssh-ed25519 AAAA..."/>
+					<span class="hint">
+						You have no keys on your profile, so this workspace needs one to be
+						reachable. <a href={ linkPath(ctx, "/profile") }>Add a default key</a>
+						and you will not be asked again.
+					</span>
+				}
+			</label>
+			@previewPanel()
+			if data.AtWorkspaceLimit() {
+				<p class="error" role="alert">
+					You are running { fmt.Sprintf("%d", data.WorkspaceCount) } of
+					{ fmt.Sprintf("%d", data.WorkspaceLimit) } workspaces. Stop one, or
+					ask an administrator to raise your quota.
+				</p>
+			} else {
+				<button type="submit">Create workspace</button>
+				if data.WorkspaceLimit > 0 {
+					<span class="hint">
+						Running { fmt.Sprintf("%d", data.WorkspaceCount) } of
+						{ fmt.Sprintf("%d", data.WorkspaceLimit) } workspaces. Stopped ones
+						do not count, but their storage does.
+					</span>
+				}
+			}
+		</form>
+	</section>
+}
+
+// envFields is the workspace's extra environment variables: zero or more
+// KEY=VALUE pairs, one text-box pair per variable. Rows share the input names
+// "env_key"/"env_value" so draftFromForm can read them as parallel lists -
+// index i of one pairs with index i of the other. existing prefills the rows
+// for the edit form; nil (or empty) renders the one blank row a create form
+// starts with.
+templ envFields(existing []corev1.EnvVar) {
+	<div class="entry" data-env-fields>
+		<span class="field-label">Environment variables</span>
+		<div data-env-rows>
+			if len(existing) == 0 {
+				@envRow("", "")
+			} else {
+				for _, v := range existing {
+					@envRow(v.Name, v.Value)
+				}
+			}
+		</div>
+		<button type="button" class="secondary" data-env-add>Add variable</button>
+	</div>
+}
+
+// envRow is also cloned client-side by data-env-add, so its markup must stand
+// on its own with no server-only state.
+templ envRow(key, value string) {
+	<div class="env-row" data-env-row>
+		<input type="text" name="env_key" placeholder="KEY" value={ key } aria-label="Environment variable name"/>
+		<input type="text" name="env_value" placeholder="value" value={ value } aria-label="Environment variable value"/>
+		<button type="button" class="secondary" data-env-remove aria-label="Remove this variable">&times;</button>
+	</div>
+}
+
+// previewPanel is collapsed by default: it answers "what exactly will this
+// create", which is a question you either have or do not, and it should not
+// push the submit button off the screen for everyone who does not.
+templ previewPanel() {
+	<details class="entry preview-panel">
+		<summary>YAML preview</summary>
+		<div id="workspace-preview">
+			<pre class="code-block skeleton">Fill in the form to see the object.</pre>
+		</div>
+	</details>
+}
+
+// WorkspacePreview is the fragment the form swaps in as it is edited.
+//
+// A parse failure renders as the message rather than an empty box: mid-keystroke
+// a value is often not a quantity yet, and "memory request: "4G" is not a
+// quantity" is a more useful thing to show than nothing.
+templ WorkspacePreview(rendered, problem string) {
+	if problem != "" {
+		<p class="error" role="status">{ problem }</p>
+	} else {
+		<pre class="code-block">{ rendered }</pre>
+	}
+}

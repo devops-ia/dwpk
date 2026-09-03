@@ -27,10 +27,36 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
   features:
-    - navigation.tabs
     - navigation.sections
+    - navigation.expand
     - navigation.top
+    - navigation.indexes
+    - toc.follow
     - content.code.copy
+
+plugins:
+  - search
+  - llmstxt:
+      markdown_description: >
+        dwpk (Development Workspace Platform for Kubernetes) is a self-service platform for
+        persistent developer environments on your own Kubernetes cluster: a catalog of container
+        images, one namespace and quota per person, and access over SSH, VS Code Remote-SSH, or a
+        browser terminal. No external database - state lives in Kubernetes CRDs.
+      full_output: llms-full.txt
+      sections:
+        Getting started:
+          - README.md: What dwpk is, why it exists, and how the three components fit together
+          - QUICKSTART.md: Zero to a running workspace on a local cluster
+        Guides:
+          - INSTALLATION.md: Helm (OCI) and raw-manifest installs, OAuth2 provider setup
+          - ADMINISTRATION.md: Curating the catalog, provisioning users, day-2 operations
+          - USER_GUIDE.md: Using the marketplace UI
+          - GATEWAY_AWS.md: Exposing the SSH gateway with the AWS Load Balancer Controller
+        Reference:
+          - ARCHITECTURE.md: Components, CRDs, reconcile flows, RBAC model
+          - API_REFERENCE.md: CRDs and the REST API
+          - ENVIRONMENT_VARIABLES.md: Every environment variable each binary reads
+          - TROUBLESHOOTING.md: Common failures and fixes
 
 markdown_extensions:
   - admonition

@@ -244,7 +244,7 @@ jobs:
           python-version: "3"
 
       - name: Install mkdocs-material and mike
-        run: pip install mkdocs-material mike
+        run: pip install mkdocs-material mike mkdocs-llmstxt
 
       # mike's version identifier is major.minor, not the full patch version:
       # a patch release (1.4.0 -> 1.4.1) redeploys the same "1.4" entry in

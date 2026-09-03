@@ -1,12 +1,12 @@
+[![License](https://img.shields.io/github/license/devops-ia/dwpk)](./LICENSE)
+[![Release](https://img.shields.io/github/v/release/devops-ia/dwpk)](https://github.com/devops-ia/dwpk/releases)
+[![Docs](https://img.shields.io/badge/docs-devops--ia.github.io%2Fdwpk-blue)](https://devops-ia.github.io/dwpk/)
+
 # dwpk
 
 **Development Workspace Platform for Kubernetes.** Give every developer on your team a real,
 persistent, browser- and SSH-reachable dev environment running on your own cluster, provisioned
 from a catalog you control.
-
-[![License](https://img.shields.io/github/license/devops-ia/dwpk)](./LICENSE)
-[![Release](https://img.shields.io/github/v/release/devops-ia/dwpk)](https://github.com/devops-ia/dwpk/releases)
-[![Docs](https://img.shields.io/badge/docs-devops--ia.github.io%2Fdwpk-blue)](https://devops-ia.github.io/dwpk/)
 
 **[Full documentation →](https://devops-ia.github.io/dwpk/)**
 

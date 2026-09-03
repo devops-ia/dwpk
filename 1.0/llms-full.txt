@@ -1,0 +1,2263 @@
+# dwpk
+
+> Development Workspace Platform for Kubernetes
+
+dwpk (Development Workspace Platform for Kubernetes) is a self-service platform for persistent developer environments on your own Kubernetes cluster: a catalog of container images, one namespace and quota per person, and access over SSH, VS Code Remote-SSH, or a browser terminal. No external database - state lives in Kubernetes CRDs.
+
+
+# Getting started
+
+# dwpk
+
+## What is dwpk?
+
+**dwpk (Development Workspace Platform for Kubernetes)** is a self-service platform for running persistent developer environments on your own Kubernetes cluster. A cluster admin curates a catalog of container images; developers pick one, click create, and get a namespaced, quota-bound workspace with a persistent home directory that they reach over SSH, VS Code Remote-SSH, or a terminal in the browser.
+
+dwpk is not a hosted SaaS and it does not run your code on somebody else's infrastructure. It is an operator: three Go binaries you deploy into your own cluster, reconciling a small set of Kubernetes custom resources into namespaces, quotas, RBAC, and StatefulSets. There is no external database - control-plane state lives entirely in Kubernetes objects, so the platform inherits your cluster's own HA, backup, and audit story instead of inventing a second one.
+
+## Why dwpk?
+
+Most "cloud dev environment" products put your code and your identities on somebody else's cluster and bill per seat. dwpk inverts that: the environments run where your infrastructure already runs, access control is Kubernetes RBAC rather than a vendor's own authorization system, and the whole platform is three stateless-ish binaries and a handful of CRDs - nothing to run beyond the cluster you already operate.
+
+That trade-off shapes the rest of the design:
+
+- **Kubernetes-native state.** `WorkspaceImage`, `UserSpace`, `Workspace`, and `ImageRegistry` are ordinary CRDs. `kubectl get workspace` works. Backup is your existing etcd/cluster backup.
+- **Bring your own identity.** Sign-in delegates to Entra ID, Google, GitLab, Keycloak, or GitHub - no separate user database to provision or leak.
+- **No standing privilege.** The web UI never holds cluster-wide write access; every request mints a short-lived, namespace-scoped Kubernetes token for the signed-in person (§7.7/§8.1 of the design spec), so it is a thin, revocable pass-through rather than a security boundary of its own.
+
+## Quick start
+
+```
+git clone https://github.com/devops-ia/dwpk.git
+cd dwpk
+make install                                 # CRDs into your current kubeconfig's cluster
+go run ./cmd/manager & go run ./cmd/gateway   # run locally against that kubeconfig
+kubectl apply -k config/samples/              # a sample catalog entry, user, and workspace
+```
+
+The full walkthrough, including the cert-manager prerequisite and connecting over SSH, is in [Quick start](https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md). For a real deployment, see [Installation](https://devops-ia.github.io/dwpk/1.0/INSTALLATION/index.md).
+
+## How it works
+
+dwpk is three cooperating binaries sharing one Kubernetes API surface:
+
+```
+Developer browser / VS Code / ssh client
+            |
+            | HTTPS or SSH
+            v
++------------------------------+
+| dwpk UI                      |
+| OAuth2 login, session store, |
+| TokenRequest per request     |
++------------------------------+
+            |
+            | Kubernetes API with minted ServiceAccount token
+            v
++------------------------------+
+| kube-apiserver               |
+| WorkspaceImage, UserSpace,   |
+| Workspace, RBAC, webhooks    |
++------------------------------+
+            ^
+            |
++------------------------------+        +------------------------------+
+| dwpk manager                 |        | dwpk gateway                 |
+| reconciles CRDs into         |        | SSH auth, pods/exec,         |
+| namespaces, quotas,          |        | pods/portforward             |
+| StatefulSets, Services       |        +------------------------------+
++------------------------------+                     |
+            |                                        |
+            +------------------------------+---------+
+                                           |
+                                           v
+                                user namespace, workspace pod,
+                                home PVC, ServiceAccount, RBAC
+```
+
+- **`cmd/manager`** is a Kubebuilder operator. It reconciles `WorkspaceImage` (catalog entries), `UserSpace` (one per person: namespace, quota, RBAC), `Workspace` (a running session backed by a single-replica `StatefulSet`), and `ImageRegistry` (polls an external registry, AWS ECR today, and syncs matching images into the catalog automatically).
+- **`cmd/gateway`** is a stateless SSH gateway. It authenticates an incoming public key against the `Workspace` that trusts it, then bridges the session in over `pods/exec` and `pods/portforward` - the workspace image itself never runs `sshd`.
+- **`cmd/ui`** is the marketplace web UI: Go, `templ`, and htmx, no SPA and no JS build step.
+
+Full detail, including the RBAC model and the controller reconcile flows, is in [Architecture](https://devops-ia.github.io/dwpk/1.0/ARCHITECTURE/index.md).
+
+## Features
+
+- **Self-service catalog.** Admins curate `WorkspaceImage` entries (or sync them automatically from a container registry); users pick one, set CPU/memory/GPU, and create a workspace bound to their own quota.
+- **Multiple ways in.** SSH, a VS Code Remote-SSH deep link, and an in-browser terminal, all through the same gateway and the same authorized keys.
+- **Five identity providers.** Entra ID, Google, GitLab, Keycloak, and GitHub, with optional group-to-role mapping so an identity provider's own groups can grant admin access.
+- **Per-user isolation.** One namespace per person, with a `ResourceQuota`, `LimitRange`, and `NetworkPolicy` the manager creates and enforces - never hand-provisioned.
+- **Logs and events, not metrics.** Pod logs and Kubernetes events are read with the requesting user's own token, so access follows the same RBAC as everything else.
+- **Git over SSH.** Users can register their own private git SSH keys, mounted into their workspace and never visible to the platform in plaintext.
+- **Read-scoped API tokens.** A user can mint a full-access or read-only bearer token for scripting against the REST API, each backed by its own Kubernetes ServiceAccount.
+- **No external database.** Every piece of platform state - catalog, quota, session, even local password logins for demos - is a Kubernetes object.
+
+## Documentation map
+
+- [Quick start](https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md) - zero to a running workspace
+- [Architecture](https://devops-ia.github.io/dwpk/1.0/ARCHITECTURE/index.md) - components, CRDs, reconcile flows, RBAC model
+- [Gateway on AWS](https://devops-ia.github.io/dwpk/1.0/GATEWAY_AWS/index.md) - exposing SSH with the AWS Load Balancer Controller (NLB, not ALB)
+- [Installation](https://devops-ia.github.io/dwpk/1.0/INSTALLATION/index.md) - Helm (OCI) and raw-manifest installs, OAuth2 provider setup
+- [Administration](https://devops-ia.github.io/dwpk/1.0/ADMINISTRATION/index.md) - curating the catalog, provisioning users, day-2 operations
+- [User guide](https://devops-ia.github.io/dwpk/1.0/USER_GUIDE/index.md) - using the marketplace UI
+- [API reference](https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md) - CRDs and the REST API
+- [Environment variables](https://devops-ia.github.io/dwpk/1.0/ENVIRONMENT_VARIABLES/index.md) - every variable each binary reads
+- [Troubleshooting](https://devops-ia.github.io/dwpk/1.0/TROUBLESHOOTING/index.md) - common failures and fixes
+
+Development notes (building, testing, local dev loop) stay in the root [README](https://github.com/devops-ia/dwpk/blob/main/README.md); this docs set does not duplicate that.
+
+# Quick start
+
+The fastest path from an empty cluster to an SSH session inside a workspace. This runs the manager, gateway, and UI locally against your kubeconfig — good for trying dwpk out or developing against it. For a real deployment, see [Installation](https://devops-ia.github.io/dwpk/1.0/INSTALLATION/index.md).
+
+## Prerequisites
+
+- A Kubernetes cluster you can reach with `kubectl` (OrbStack, kind, or minikube are all fine)
+- Go 1.24.6+ and `kubectl` on your machine
+- [cert-manager](https://cert-manager.io/) installed in the cluster — the manager's webhook needs it to issue its TLS certificate:
+
+```
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.21.1/cert-manager.yaml
+kubectl wait --for=condition=Available -n cert-manager deployment --all --timeout=120s
+```
+
+## 1. Install the CRDs
+
+```
+git clone https://github.com/devops-ia/dwpk.git
+cd dwpk
+make install
+```
+
+## 2. Run the three components
+
+Each in its own terminal, against your current kubeconfig:
+
+```
+go run ./cmd/manager
+go run ./cmd/gateway
+DWPK__UI_KUBECONFIG=~/.kube/config DWPK__UI_LISTEN_ADDRESS=:8080 go run ./cmd/ui
+```
+
+## 3. Create a catalog entry, a user, and a workspace
+
+```
+kubectl apply -k config/samples/
+```
+
+Check that the sample `WorkspaceImage` matches your cluster before this step — its `placement.nodeSelector` has to match a real node label, or the workspace pod stays `Pending`.
+
+## 4. Connect
+
+Once `kubectl get workspace` shows `status.phase: Running`, connect over SSH with the key you set in the sample `UserSpace` (the sample workspace is named `dev`):
+
+```
+ssh dev@localhost -p 2222
+```
+
+Or open the UI at `http://localhost:8080` and use the browser terminal or the VS Code Remote-SSH deep link from the workspace's detail page.
+
+## Next steps
+
+- [Installation](https://devops-ia.github.io/dwpk/1.0/INSTALLATION/index.md) — the full Helm-based, production-shaped install (OAuth2 login, TLS, ingress)
+- [User guide](https://devops-ia.github.io/dwpk/1.0/USER_GUIDE/index.md) — using the marketplace UI day to day
+- [Administration](https://devops-ia.github.io/dwpk/1.0/ADMINISTRATION/index.md) — curating the catalog and provisioning users
+# Guides
+
+# Installation
+
+## What ships today
+
+Two install paths exist:
+
+- `dist/install.yaml`, a raw `kubectl apply` bundle you build yourself with `make build-installer`
+- the Helm chart, published as an OCI artifact at `oci://ghcr.io/devops-ia/helm-dwpk/dwpk` from the separate [devops-ia/helm-dwpk](https://github.com/devops-ia/helm-dwpk) repository
+
+They are not equivalent.
+
+`dist/install.yaml` comes from `config/default` and installs the manager, CRDs, webhook objects, and supporting RBAC. It does not include the SSH gateway or the UI.
+
+The Helm chart templates all three components: manager, gateway, and UI. Use it for the full platform.
+
+## Prerequisites
+
+### Cluster requirements
+
+The chart does not declare a `kubeVersion` gate. Current code uses:
+
+- `k8s.io/api v0.36.0`
+- `k8s.io/client-go v0.36.0`
+- `sigs.k8s.io/controller-runtime v0.24.1`
+
+The manifests rely on:
+
+- CRDs in `apiextensions.k8s.io/v1`
+- admission webhooks in `admissionregistration.k8s.io/v1`
+- the `serviceaccounts/token` subresource for `TokenRequest`
+
+Use a current Kubernetes release that supports those APIs.
+
+### Required cluster add-ons
+
+- cert-manager. The project relies on cert-manager for webhook certificates. The chart's default `certManager.enabled=true` path mounts the `webhook-server-cert` Secret into the manager pod and injects the CA bundle into the webhook configurations.
+- An ingress controller if you want the UI exposed through `ui.ingress.enabled=true`, or a Gateway API implementation (with its CRDs installed) if you want `ui.gateway.enabled=true` instead.
+- A load balancer implementation if you want the gateway `Service` of type `LoadBalancer` to get an external address.
+
+[Quick start](https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md) installs cert-manager like this:
+
+```
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.21.1/cert-manager.yaml
+kubectl wait --for=condition=Available -n cert-manager deployment --all --timeout=120s
+```
+
+### Image requirements
+
+Optional. `.github/workflows/github-release.yml` already builds and publishes all three images (`ghcr.io/devops-ia/dwpk`, `dwpk-gateway`, `dwpk-ui`) on every tagged release, and the Helm chart defaults to them. Build your own only if you need a custom build.
+
+The repo ships three Dockerfiles: `Dockerfile` (repo root, manager), `cmd/gateway/Dockerfile`, and `cmd/ui/Dockerfile`. Build all three with:
+
+```
+make docker-build-all IMG=<registry>/manager:<tag> GATEWAY_IMG=<registry>/gateway:<tag> UI_IMG=<registry>/ui:<tag>
+```
+
+or individually via `make docker-build`, `make docker-build-gateway`, `make docker-build-ui` (each has a matching `docker-push-*` target). Pass the resulting repositories/tags through `image.repository`/`image.tag`, `gateway.image.repository`/`gateway.image.tag`, and `ui.image.repository`/`ui.image.tag` in Helm values.
+
+- `make helm-deploy` only wires the manager image through `IMG`. It does not set gateway or UI image values - set `--set gateway.image.repository=... --set ui.image.repository=...` (or a values file) alongside it.
+
+## OAuth2 provider configuration
+
+The UI reads provider settings from environment variables. The Helm chart maps those from `ui.oauth.*` values.
+
+Supported providers:
+
+| Provider | Required values                                                                           | Optional value when `ui.baseURL` is set | Callback path        |
+| -------- | ----------------------------------------------------------------------------------------- | --------------------------------------- | -------------------- |
+| Entra ID | `ui.oauth.entraID.clientID`, `ui.oauth.entraID.issuerURL`, secret key for client secret   | `ui.oauth.entraID.redirectURL`          | `/callback/entra-id` |
+| Google   | `ui.oauth.google.clientID`, `ui.oauth.google.issuerURL`, secret key for client secret     | `ui.oauth.google.redirectURL`           | `/callback/google`   |
+| GitLab   | `ui.oauth.gitLab.clientID`, `ui.oauth.gitLab.issuerURL`, secret key for client secret     | `ui.oauth.gitLab.redirectURL`           | `/callback/gitlab`   |
+| Keycloak | `ui.oauth.keycloak.clientID`, `ui.oauth.keycloak.issuerURL`, secret key for client secret | `ui.oauth.keycloak.redirectURL`         | `/callback/keycloak` |
+| GitHub   | `ui.oauth.gitHub.clientID`, secret key for client secret                                  | `ui.oauth.gitHub.redirectURL`           | `/callback/github`   |
+
+Every variable is prefixed `DWPK__`, a double underscore, followed by the component and the setting.
+
+Real environment variable names from `cmd/ui/main.go`:
+
+- `DWPK__UI_LISTEN_ADDRESS`
+- `DWPK__UI_PORT` - port only, on all interfaces; `DWPK__UI_LISTEN_ADDRESS` wins when both are set
+- `DWPK__UI_BASE_PATH` - path prefix when the UI is served behind a proxy under a non-root path
+- `DWPK__UI_LOG_LEVEL` - `debug`, `info`, `warn` or `error`
+- `DWPK__UI_KUBECONFIG`
+- `DWPK__UI_GATEWAY_HOST`
+- `DWPK__UI_BASE_URL`
+- `DWPK__UI_SESSION_TTL`
+- `DWPK__UI_COOKIE_SECURE`
+- `DWPK__UI_TOKEN_NAMESPACE` - namespace holding the API token Secrets
+- `DWPK__UI_LOCAL_AUTH_ENABLED` - username/password login, off by default
+- `DWPK__UI_LOCAL_AUTH_NAMESPACE` - namespace holding the local user Secrets
+- `DWPK__UI_PROVIDER_ENTRA_ID_CLIENT_ID`
+- `DWPK__UI_PROVIDER_ENTRA_ID_CLIENT_SECRET`
+- `DWPK__UI_PROVIDER_ENTRA_ID_ISSUER_URL`
+- `DWPK__UI_PROVIDER_ENTRA_ID_REDIRECT_URL`
+- `DWPK__UI_PROVIDER_GOOGLE_CLIENT_ID`
+- `DWPK__UI_PROVIDER_GOOGLE_CLIENT_SECRET`
+- `DWPK__UI_PROVIDER_GOOGLE_ISSUER_URL`
+- `DWPK__UI_PROVIDER_GOOGLE_REDIRECT_URL`
+- `DWPK__UI_PROVIDER_GITLAB_CLIENT_ID`
+- `DWPK__UI_PROVIDER_GITLAB_CLIENT_SECRET`
+- `DWPK__UI_PROVIDER_GITLAB_ISSUER_URL`
+- `DWPK__UI_PROVIDER_GITLAB_REDIRECT_URL`
+- `DWPK__UI_PROVIDER_KEYCLOAK_CLIENT_ID`
+- `DWPK__UI_PROVIDER_KEYCLOAK_CLIENT_SECRET`
+- `DWPK__UI_PROVIDER_KEYCLOAK_ISSUER_URL`
+- `DWPK__UI_PROVIDER_KEYCLOAK_REDIRECT_URL`
+- `DWPK__UI_PROVIDER_GITHUB_CLIENT_ID`
+- `DWPK__UI_PROVIDER_GITHUB_CLIENT_SECRET`
+- `DWPK__UI_PROVIDER_GITHUB_REDIRECT_URL`
+
+If `DWPK__UI_BASE_URL` is set and a provider-specific redirect URL is omitted, the UI derives the callback as `<baseURL>/callback/<provider>`.
+
+Create the Secret referenced by `ui.oauth.existingSecret` with the default key names from `helm-dwpk/values.yaml`:
+
+```
+kubectl create secret generic dwpk-ui-oauth \
+  -n dwpk-system \
+  --from-literal=entra-id-client-secret='<entra-client-secret>' \
+  --from-literal=google-client-secret='<google-client-secret>' \
+  --from-literal=gitlab-client-secret='<gitlab-client-secret>' \
+  --from-literal=keycloak-client-secret='<keycloak-client-secret>' \
+  --from-literal=github-client-secret='<github-client-secret>'
+```
+
+Only create keys for providers you actually enable.
+
+### Provider setup examples
+
+Each provider needs an app registration pointing at `<baseURL>/callback/<provider>` and, for the four OIDC providers, an issuer URL for discovery. `<baseURL>` is `ui.baseURL` (`DWPK__UI_BASE_URL`).
+
+#### Entra ID
+
+1. Azure Portal → **Microsoft Entra ID → App registrations → New registration**. Add a **Web** redirect URI: `https://dwpk.example.com/callback/entra-id`.
+1. Under **Certificates & secrets**, create a client secret.
+1. The issuer URL is `https://login.microsoftonline.com/<tenant-id>/v2.0`.
+
+```
+helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
+  --version <chart-version> \
+  -n dwpk-system --create-namespace \
+  --set ui.baseURL=https://dwpk.example.com \
+  --set ui.oauth.existingSecret=dwpk-ui-oauth \
+  --set ui.oauth.entraID.clientID=<entra-client-id> \
+  --set ui.oauth.entraID.issuerURL=https://login.microsoftonline.com/<tenant-id>/v2.0
+```
+
+See [Mapping OAuth2 groups](#mapping-oauth2-groups-to-adminuser-roles) below for a worked example of Entra ID's admin/user group claim.
+
+#### Google
+
+1. [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → Credentials → Create Credentials → OAuth client ID**, application type **Web application**.
+1. Add an authorized redirect URI: `https://dwpk.example.com/callback/google`.
+1. The issuer URL is `https://accounts.google.com`.
+
+```
+helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
+  --version <chart-version> \
+  -n dwpk-system --create-namespace \
+  --set ui.baseURL=https://dwpk.example.com \
+  --set ui.oauth.existingSecret=dwpk-ui-oauth \
+  --set ui.oauth.google.clientID=<google-client-id> \
+  --set ui.oauth.google.issuerURL=https://accounts.google.com
+```
+
+Google's ID token has no `groups` claim, so `_ADMIN_GROUPS`/`_USER_GROUPS` have no effect here - manage `UserSpace.spec.role` directly for Google logins.
+
+#### GitLab
+
+1. GitLab → **User Settings → Applications** (or a group/instance-level application if you want every member of that group to be able to log in). Redirect URI: `https://dwpk.example.com/callback/gitlab`. Scopes: `openid`, `email`, `profile`.
+1. The issuer URL is `https://gitlab.com` for GitLab.com, or your self-managed instance's own URL.
+
+```
+helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
+  --version <chart-version> \
+  -n dwpk-system --create-namespace \
+  --set ui.baseURL=https://dwpk.example.com \
+  --set ui.oauth.existingSecret=dwpk-ui-oauth \
+  --set ui.oauth.gitLab.clientID=<gitlab-client-id> \
+  --set ui.oauth.gitLab.issuerURL=https://gitlab.com
+```
+
+GitLab can carry a `groups` claim (full paths, e.g. `my-group/my-subgroup`) - set `DWPK__UI_PROVIDER_GITLAB_ADMIN_GROUPS`/`_USER_GROUPS` to those paths if you want group-based roles.
+
+#### Keycloak
+
+1. Keycloak admin console → your realm → **Clients → Create client**, client type **OpenID Connect**, **Client authentication** on (confidential client). Redirect URI: `https://dwpk.example.com/callback/keycloak`.
+1. The issuer URL is `https://<keycloak-host>/realms/<realm>`.
+
+```
+helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
+  --version <chart-version> \
+  -n dwpk-system --create-namespace \
+  --set ui.baseURL=https://dwpk.example.com \
+  --set ui.oauth.existingSecret=dwpk-ui-oauth \
+  --set ui.oauth.keycloak.clientID=<keycloak-client-id> \
+  --set ui.oauth.keycloak.issuerURL=https://keycloak.example.com/realms/dwpk
+```
+
+Keycloak needs a client scope mapper that adds a `groups` claim to the ID token before `_ADMIN_GROUPS`/`_USER_GROUPS` will see anything - realm roles alone are not on the token by default.
+
+#### GitHub
+
+1. GitHub → **Settings → Developer settings → OAuth Apps → New OAuth App**. Authorization callback URL: `https://dwpk.example.com/callback/github`.
+1. GitHub has no OIDC discovery document, so there is no issuer URL to set - the UI talks to GitHub's OAuth2 and REST endpoints directly.
+
+```
+helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
+  --version <chart-version> \
+  -n dwpk-system --create-namespace \
+  --set ui.baseURL=https://dwpk.example.com \
+  --set ui.oauth.existingSecret=dwpk-ui-oauth \
+  --set ui.oauth.gitHub.clientID=<github-client-id>
+```
+
+GitHub has no group claim at all - `_ADMIN_GROUPS`/`_USER_GROUPS` have no effect for `DWPK__UI_PROVIDER_GITHUB_*`. Manage `UserSpace.spec.role` directly for GitHub logins.
+
+You can enable more than one provider at once; each reads its own set of `DWPK__UI_PROVIDER_<PROVIDER>_*` variables independently, and every configured provider appears as a separate button on the login page.
+
+### Mapping OAuth2 groups to admin/user roles
+
+Every UserSpace already carries its own `spec.role`, set once by an admin when the UserSpace is provisioned. For OIDC providers whose ID token carries a `groups` claim (Entra ID, Keycloak and GitLab all can - GitHub has no equivalent, since it maps org/team membership through a separate API instead), you can additionally let group membership decide the role at login time, the same way you might in any other app that reads group-based authorization from its identity provider.
+
+Two more environment variables per provider, comma-separated group names/object IDs:
+
+- `DWPK__UI_PROVIDER_<PROVIDER>_ADMIN_GROUPS`
+- `DWPK__UI_PROVIDER_<PROVIDER>_USER_GROUPS`
+
+Neither variable set (the default) means group mapping is off entirely - `spec.role` alone decides, exactly as before this existed. When either is set, every login through that provider is checked in this order:
+
+1. A group in `ADMIN_GROUPS` → session role is `admin`, no matter what `spec.role` says.
+1. Else a group in `USER_GROUPS` → session role is `user`.
+1. Else neither list matches → `spec.role` (or its default, `user`) is used unchanged.
+
+This mapping only ever adds admin access through a group; it never takes admin access away from a UserSpace an administrator already flagged `spec.role: admin` directly. To force a role regardless of group membership, leave both variables unset for that provider and manage `spec.role` by hand instead.
+
+#### Worked example: Microsoft Entra ID
+
+1. In the Entra ID app registration used for `DWPK__UI_PROVIDER_ENTRA_ID_*`, open **Token configuration** and add a **groups claim** (`GroupMembershipClaims`) to the ID token - either "Security groups" or, for larger tenants, "Groups assigned to the application" so the claim stays under Entra ID's per-token group limit.
+1. In **Enterprise applications → (your app) → Users and groups**, note the **Object ID** of the group you want to grant admin access, and the Object ID of the group you want to grant ordinary user access (these can be the same group's parent/child structure, or two unrelated groups).
+1. Set the two variables using those Object IDs:
+
+```
+DWPK__UI_PROVIDER_ENTRA_ID_ADMIN_GROUPS=11111111-2222-3333-4444-555555555555
+DWPK__UI_PROVIDER_ENTRA_ID_USER_GROUPS=66666666-7777-8888-9999-000000000000
+```
+
+1. A user in the first group signs in and lands with `admin`; a user only in the second lands with `user`; a user in neither keeps whatever `spec.role` their UserSpace already has.
+
+`DWPK__UI_BASE_URL` (already required for the redirect URL above) is the same "the app needs to know its own external URL for callbacks" setting most OIDC-based platforms ask for - nothing extra to configure for that part.
+
+## Install with raw manifests
+
+Use this path if you only want the operator stack or you want a zero-Helm install.
+
+1. Build or refresh the bundle.
+
+```
+make build-installer IMG=<registry>/dwpk-manager:<tag>
+```
+
+1. Apply it.
+
+```
+kubectl apply -f dist/install.yaml
+```
+
+1. Verify CRDs and manager pods.
+
+```
+kubectl get crd | grep 'dwpk.devops-ia.io'
+kubectl get pods -n dwpk-system
+kubectl get mutatingwebhookconfigurations,validatingwebhookconfigurations | grep dwpk
+```
+
+What this path installs:
+
+- CRDs for `workspaceimages`, `userspaces`, and `workspaces`
+- Manager Deployment
+- Webhook Service and webhook configurations
+- cert-manager `Issuer` and `Certificate` references from `config/default`
+- Manager RBAC, helper CRD roles, leader election RBAC, and metrics RBAC
+
+What it does not install:
+
+- SSH gateway Deployment or Service
+- UI Deployment, Service, or Ingress
+
+## Install full platform with Helm
+
+Use the chart published at `oci://ghcr.io/devops-ia/helm-dwpk/dwpk` for the full stack. Pick a chart version from the [helm-dwpk releases](https://github.com/devops-ia/helm-dwpk/releases) - the chart version tracks its own release cadence, separate from `dwpk`'s own tags.
+
+### Values that matter first
+
+Important defaults (see `helm show values oci://ghcr.io/devops-ia/helm-dwpk/dwpk --version <chart-version>` for the full, current list):
+
+- `manager.enabled=true`
+- `gateway.enabled=true`
+- `ui.enabled=true`
+- `gateway.listenAddress=":2222"`
+- `gateway.service.type=LoadBalancer`
+- `gateway.service.port=22`
+- `ui.listenAddress=":8080"`
+- `ui.service.type=ClusterIP`
+- `ui.service.port=80`
+- `ui.sessionTTL=15m`
+- `ui.cookieSecure=true`
+- `metrics.enabled=true`
+- `metrics.port=8443`
+- `metrics.secure=true`
+- `webhook.enabled=true`
+- `webhook.port=9443`
+- `certManager.enabled=true`
+- `crd.enabled=true`
+- `crd.keep=true`
+- `rbac.helpers.enabled=false`
+
+The chart supports any release namespace, but the manager binary hard-codes `dwpk-system` as its leader election namespace. Install into `dwpk-system` unless you patch the binary or code.
+
+### Example Helm install
+
+This example keeps all three components enabled and wires one Entra ID client. Component images default to the `ghcr.io/devops-ia/dwpk{,-gateway,-ui}` images built by `.github/workflows/github-release.yml`, tagged to match the chart's `appVersion` - only override `*.image.repository`/`*.image.tag` if you publish your own build.
+
+```
+helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
+  --version <chart-version> \
+  --namespace dwpk-system \
+  --create-namespace \
+  --set manager.replicas=2 \
+  --set ui.baseURL=https://dwpk.example.com \
+  --set ui.gatewayHost=dwpk.example.com \
+  --set ui.ingress.enabled=true \
+  --set ui.ingress.className=<ingress-class> \
+  --set ui.ingress.hosts[0].host=dwpk.example.com \
+  --set ui.ingress.hosts[0].paths[0].path=/ \
+  --set ui.ingress.hosts[0].paths[0].pathType=Prefix \
+  --set ui.oauth.existingSecret=dwpk-ui-oauth \
+  --set ui.oauth.entraID.clientID=<client-id> \
+  --set ui.oauth.entraID.issuerURL=https://login.microsoftonline.com/<tenant>/v2.0
+```
+
+If you do not want the gateway or UI, set `gateway.enabled=false` and `ui.enabled=false`.
+
+### SSH host key
+
+The gateway presents one SSH host key to every client, generated on first install and stored in a Kubernetes Secret the chart creates and keeps (`gateway.hostKey.existingSecret` overrides this with your own). Every gateway replica and every restart mounts that same Secret, so `ssh-keyscan` or a client's `known_hosts` entry stays valid across restarts and upgrades - an SSH client, and in particular VS Code Remote-SSH, refuses to forward ports the moment it sees the host key change, which is what an unpersisted key looks like from the outside.
+
+### Exposing the UI: Ingress or Gateway API
+
+Two mutually independent ways to expose the UI `Service` externally, enable one or the other (or neither, if you only need cluster-internal access):
+
+- `ui.ingress.*` - a classic `networking.k8s.io/v1` `Ingress`.
+- `ui.gateway.*` - the [Kubernetes Gateway API](https://kubernetes.io/docs/concepts/services-networking/gateway/) (`gateway.networking.k8s.io/v1` `Gateway` + `HTTPRoute`). Requires the Gateway API CRDs and a controller implementing them (nginx-gateway-fabric, Envoy Gateway, Cilium, Istio, etc.) already installed in the cluster.
+
+With `ui.gateway.create=true` (default when `ui.gateway.enabled=true`), the chart creates its own `Gateway` object using `ui.gateway.listeners`, and the `HTTPRoute` attaches to it:
+
+```
+helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
+  --version <chart-version> \
+  --namespace dwpk-system --create-namespace \
+  --set ui.gateway.enabled=true \
+  --set ui.gateway.className=nginx \
+  --set ui.gateway.hostnames[0]=dwpk.example.com
+```
+
+To attach to a `Gateway` that already exists (managed outside this chart, shared across apps), set `ui.gateway.create=false` and point `ui.gateway.parentRefs` at it instead:
+
+```
+ui:
+  gateway:
+    enabled: true
+    create: false
+    parentRefs:
+      - name: shared-gateway
+        namespace: gateway-system
+    hostnames:
+      - dwpk.example.com
+```
+
+`ui.gateway.rules` controls `HTTPRoute` matches/filters (path prefix by default); the `backendRefs` entry pointing at the UI Service is always added automatically.
+
+### Gateway host key
+
+The gateway chart values support two modes:
+
+- Ephemeral host key per pod start, the default when `gateway.hostKey.existingSecret=""`
+- A fixed PEM key from a Secret when `gateway.hostKey.existingSecret` is set
+
+The default Secret key name is `hostkey.pem`, and the file is mounted to `gateway.hostKey.path`, which defaults to `/var/run/dwpk-gateway/hostkey/hostkey.pem`.
+
+Use a fixed host key for stable SSH host identity across pod restarts.
+
+### Helm-specific gotchas
+
+- `rbac.namespaced=true` is not compatible with the gateway or UI templates. Both templates call `fail` and require cluster-scoped RBAC.
+- `make helm-deploy` only wires the manager image through `IMG`. It does not set gateway or UI image values.
+- `crd.keep=true` means `helm uninstall` leaves the CRDs behind.
+
+## Verify the install
+
+### Core checks
+
+```
+kubectl get pods -n dwpk-system
+kubectl get svc -n dwpk-system
+kubectl get crd | grep 'dwpk.devops-ia.io'
+kubectl get mutatingwebhookconfigurations,validatingwebhookconfigurations | grep dwpk
+```
+
+### Gateway checks
+
+```
+kubectl get deployment,svc -n dwpk-system | grep gateway
+kubectl get svc -n dwpk-system <gateway-service-name> -o wide
+```
+
+The gateway Deployment listens on container port `2222` by default and the Service exposes port `22`.
+
+### UI checks
+
+```
+kubectl get deployment,svc,ingress -n dwpk-system | grep ui
+kubectl describe ingress -n dwpk-system <ui-ingress-name>
+```
+
+The UI liveness and readiness probes hit `GET /login`.
+
+Once the UI is exposed, `/api/docs` serves the interactive API reference (Swagger UI, vendored - no CDN, works offline) with a "Try it out" button that can exercise real requests. It needs no login, since it is read-only documentation. The machine-readable spec behind it lives at `/api/v1/openapi.yaml` and is checked into the repository at `docs/openapi.yaml`.
+
+### Functional checks
+
+1. Create at least one `WorkspaceImage` and one `UserSpace`.
+1. Open the UI `/login` page.
+1. Complete login with a provider that maps to the `UserSpace.spec.owner` email.
+1. Confirm the catalog loads.
+1. Create a `Workspace` and wait for `status.phase=Running`.
+1. Confirm `status.endpoint` contains `<workspace-name>@<gateway-host>`.
+
+## Upgrade
+
+### Raw manifests
+
+Rebuild the installer bundle with the new manager image and re-apply it.
+
+```
+make build-installer IMG=<registry>/dwpk-manager:<tag>
+kubectl apply -f dist/install.yaml
+```
+
+### Helm
+
+Run the same `helm upgrade --install` command with a new `--version` (chart) or new `*.image.tag` values.
+
+## CI coverage in this repo
+
+Workflow files under `.github/workflows/` currently do this:
+
+- `app-lint.yml` runs `make lint-config` and `make lint`
+- `app-test.yml` runs `go mod tidy` and `make test`
+- `app-test-e2e.yml` installs kind, then runs `go mod tidy` and `make test-e2e`
+- `github-pr-title.yml` checks pull request titles against the Conventional Commits format `CONTRIBUTING.md` requires
+- `github-release.yml` runs semantic-release on `main`, then builds and publishes the `manager`/`gateway`/`ui` binaries and container images (to both Docker Hub and `ghcr.io`) for the resolved version
+- `github-sync-chart-crds.yml` opens a pull request against `devops-ia/helm-dwpk` whenever `api/v1alpha1` changes, keeping that repo's CRDs and manager `ClusterRole` in sync
+- `github-pages.yml` publishes this repository's `docs/` set to GitHub Pages on every change
+
+Chart linting, packaging, and the OCI push to `ghcr.io/devops-ia/helm-dwpk/dwpk` happen in the separate `devops-ia/helm-dwpk` repository's own workflows, not here.
+
+## Uninstall
+
+### Helm
+
+```
+helm uninstall dwpk -n dwpk-system
+```
+
+Then delete CRDs if you want a full cleanup:
+
+```
+make uninstall
+```
+
+### Raw manifests
+
+```
+make undeploy
+make uninstall
+```
+
+Before removing CRDs, delete user-created `Workspace`, `UserSpace`, and `WorkspaceImage` objects if you want Kubernetes garbage collection to clean up namespaces and workload objects first. Persistent home PVCs are deliberately retained by the `StatefulSet` design, so remove them manually if you want the storage gone.
+
+# Administration
+
+## Admin model
+
+A cluster admin owns three jobs in dwpk:
+
+- Curate catalog entries through `WorkspaceImage`
+- Provision one `UserSpace` per person, with the quota it may spend
+
+Users do not self-provision namespaces in the current codebase. Login succeeds only when the provider email matches an existing `UserSpace.spec.owner`.
+
+## Manage catalog entries
+
+`WorkspaceImage` is cluster scoped. Users read it, but do not create it.
+
+A catalog entry controls:
+
+- Marketplace title and description
+- Container image reference and pull policy
+- Working directory, pod UID, and whether root is permitted
+- Placement rules
+- Deprecated state, either immediately or from a date
+
+It does not control size. Resources are chosen per workspace and checked against the owner's quota when the workspace is admitted.
+
+Start from the sample in `config/samples/dwpk_v1alpha1_workspaceimage.yaml`.
+
+```
+kubectl apply -f config/samples/dwpk_v1alpha1_workspaceimage.yaml
+kubectl get workspaceimages
+```
+
+Good operating practice:
+
+- Keep `metadata.name` stable. Users reference it through `Workspace.spec.imageRef.name`.
+- Retire an entry with `spec.deprecateAt` rather than `spec.deprecated`. Until that moment the entry works normally and the catalog shows how long is left; after it, the entry behaves as deprecated. `spec.deprecated=true` is the immediate form.
+- A deprecated entry keeps its existing workspaces running. It only stops being offered for new ones, and the UI still shows it when the user asks for deprecated entries.
+- `spec.allowRoot` lets workspaces from that entry run as uid 0. Only an administrator can set it, and it is the one field worth a second look before saving.
+- Test placement rules. `spec.placement.nodeSelector` and `spec.placement.tolerations` are passed straight into the workspace pod spec.
+- A private image needs `spec.imagePullSecretRef` naming a pull Secret. dwpk replicates that Secret from the manager's own namespace into every user namespace - see "Sync the catalog from a registry" below for how the Secret gets there when it comes from a synced registry, or label one yourself with `dwpk.devops-ia.io/pull-secret=true` for a hand-added entry.
+
+## Sync the catalog from a registry
+
+Under Administration → Catalog, a **Registries** section configures `ImageRegistry` objects that poll an external registry (AWS ECR today) and keep matching WorkspaceImages in sync automatically, instead of adding entries by hand.
+
+Each registry configures:
+
+- **Where**: AWS region, account ID (defaults to the credentials' own account), and an optional cross-account role ARN. Authentication is the AWS SDK's default credential chain - IRSA, EKS Pod Identity, or an instance profile; no AWS key ever needs to be stored in the cluster.
+- **What to sync**: include/exclude RE2 patterns matched against repository names (one per line; exclude wins when both match), and a tag policy - either the newest tag by push time, or every tag matching a set of patterns, capped at a configurable number per repository.
+- **How often**: a sync interval in seconds (minimum 60), plus a **Force sync** button per registry to retrigger one immediately.
+- **Cleanup**: an opt-in "delete on disappearance" toggle. Off by default, so a registry that is briefly unreachable does not delete catalog entries somebody may be using.
+- **Private images**: an optional pull-secret name, stamped onto every entry the registry syncs.
+
+Every synced entry shows which registry produced it and is labelled `dwpk.devops-ia.io/image-registry=<registry name>`. Editing a synced entry's fields by hand is possible but pointless - the next sync overwrites them, and the admin screen says so.
+
+Deleting an `ImageRegistry` deletes every WorkspaceImage it synced (`ownerReferences`); workspaces already running one of those images keep running.
+
+## Provision UserSpaces
+
+A `UserSpace` creates the tenant boundary for one person.
+
+```
+kubectl apply -f config/samples/dwpk_v1alpha1_userspace.yaml
+kubectl get userspaces
+```
+
+The controller derives the namespace as `dwpk-<userspace-name>` and writes that value into `status.namespace`.
+
+Each `UserSpace` currently provisions:
+
+- Namespace
+- ResourceQuota
+- LimitRange
+- NetworkPolicy
+- Three ServiceAccounts: `workspace` (the pod's own identity), `session` (the UI's per-request full-access token), and `session-readonly` (read-scoped API tokens)
+- Per-user namespaced Roles and RoleBindings, one pair for full access and one for read-only
+- Per-user ClusterRole and ClusterRoleBinding for cluster-scoped reads
+
+## RBAC that ships with the repo
+
+Helper ClusterRoles in `config/rbac/`:
+
+- `workspace-admin-role`
+- `workspace-editor-role`
+- `workspace-viewer-role`
+- `userspace-admin-role`
+- `userspace-editor-role`
+- `userspace-viewer-role`
+- `workspaceimage-admin-role`
+- `workspaceimage-editor-role`
+- `workspaceimage-viewer-role`
+- `platformconfig-admin-role`
+- `workspace-volume-admin-role`
+
+The `-editor-role` and `-viewer-role` variants are not used by dwpk itself, as `config/rbac/kustomization.yaml` says. The five `-admin-role` ClusterRoles are: the manager binds them to every `UserSpace` whose role is `admin`, which is what `--admin-cluster-roles` lists.
+
+That binding is what authorizes an administrator's own token, and the UI talks to the API server as the signed-in person rather than as itself. **So any admin screen that touches a resource not already covered here needs a new role adding to this list, `config/rbac/kustomization.yaml`, the chart, and the `dwpk.adminClusterRoles` helper - otherwise every save or delete is refused at runtime, and no unit test will catch it.** Two screens have already been caught this way: editing `PlatformConfig` from Administration → Global needs `platformconfig-admin-role`, and deleting another person's home volume needs `workspace-volume-admin-role`.
+
+`workspace-volume-admin-role` deliberately grants no `create`. Claims are made by the workspace StatefulSet's `volumeClaimTemplate`; an administrator needs to remove a departed user's storage, never to make any.
+
+Per-user RBAC created by the `UserSpace` reconciler:
+
+- Role `dwpk-workspace-user` in the user's namespace, full CRUD on `Workspace` plus pod/log/event reads
+- RoleBinding `dwpk-owner`, binding the human owner's OIDC `User` and the `session` ServiceAccount to that Role
+- Role `dwpk-workspace-reader`, the same shape as `dwpk-workspace-user` minus every write verb
+- RoleBinding `dwpk-reader`, binding the `session-readonly` ServiceAccount to that Role
+- RoleBinding `dwpk-workspace-edit`, binding the `workspace` ServiceAccount (the pod's own identity) to the built-in `edit` ClusterRole inside that namespace
+- ClusterRole `dwpk-userspace-<userspace-name>`
+- ClusterRoleBinding `dwpk-userspace-<userspace-name>`, binding the owner's `User`, `session`, and `session-readonly`
+
+That ClusterRole is narrow by design. It grants `get`, `watch`, and `patch` on one `UserSpace` via `resourceNames` (`patch` only lets a person save their own SSH keys - the validator refuses any other field), plus catalog reads and the `use` verb on `WorkspaceImage`.
+
+## Roles
+
+`UserSpace.spec.role` takes two values:
+
+| Role             | Reach                                        |
+| ---------------- | -------------------------------------------- |
+| `user` (default) | Their own workspaces, in their own namespace |
+| `admin`          | The whole platform                           |
+
+An `admin` is granted the platform admin ClusterRoles by the `UserSpace` reconciler, as ClusterRoleBindings against their session ServiceAccount. Demoting them removes those bindings - garbage collection alone would not, since it only fires when the `UserSpace` itself is deleted.
+
+**Only an admin may grant the `admin` role.** A validating webhook checks the requester with a `SubjectAccessReview` before allowing it. Without that check the role field would be a privilege escalation: anyone able to edit a `UserSpace`, including their own, could promote themselves.
+
+```
+kubectl patch userspace alice --type=merge -p '{"spec":{"role":"admin"}}'
+```
+
+There is no middle tier. A group-of-users layer existed and was removed: it decided catalog visibility and gave a manager reach into other people's namespaces, and both turned out to be RBAC the cluster already expresses more directly.
+
+### Disabling a user
+
+`spec.disabled` blocks login without deleting anything:
+
+```
+kubectl patch userspace alice --type=merge -p '{"spec":{"disabled":true}}'
+```
+
+Their namespace, workspaces and volumes are untouched, and both login paths - OAuth2 and local - are refused while the flag is set. Use it for someone on extended leave or an account under investigation, where deleting the `UserSpace` would take the data with it.
+
+## Quota and persistence
+
+### Namespace quota
+
+`UserSpace.spec.quota` maps to `ResourceQuota.hard`:
+
+- `requests.cpu`
+- `requests.memory`
+- `requests.storage`
+- `requests.<gpu resource>`, only when `quota.gpu` is above zero. A hard zero would refuse every pod that so much as mentions a GPU, which is correct but writes an object noisier than the setting behind it. The resource name comes from `PlatformConfig.spec.gpuResourceName`, `nvidia.com/gpu` by default
+
+`quota.workspaces` is not in that list. A `ResourceQuota` counts objects that exist, and a stopped workspace still exists while consuming no CPU or memory - counting it would make stopping one pointless. The limit is enforced instead by the validating webhook, which counts only the workspaces that are running.
+
+The controller also creates a `LimitRange` with default requests of `100m` CPU and `128Mi` memory for any container created in the namespace without explicit requests.
+
+### Workspace storage
+
+A workspace uses one PVC from the `StatefulSet` volume claim template. The volume claim template name is `home`, so the PVC ends up named `home-<workspace-name>-0`.
+
+The controller does not set an owner reference from the `Workspace` to that PVC, and sets no `persistentVolumeClaimRetentionPolicy` on the `StatefulSet`. That is deliberate: stopping a workspace, and deleting one, both leave the home directory intact.
+
+Removing it is therefore a separate, explicit act. The delete dialog in `/admin/workspaces` offers it, ticked by default, and requires the workspace name to be typed before it will do anything - the confirmation is checked on the server, not only in the browser, so a scripted POST cannot skip it. `DELETE` over the REST API never touches the volume.
+
+The owner of a namespace may delete their own claims and nobody else's, and cannot create one: the `StatefulSet` provisions storage, so being able to remove your own volume is not being able to conjure new storage against the quota.
+
+An orphaned claim is easy to find, and worth looking for after any period of deleting workspaces by hand:
+
+```
+kubectl get pvc -A -l dwpk.devops-ia.io/workspace
+```
+
+### ConfigMaps and Secrets
+
+dwpk itself does not create per-workspace ConfigMaps or Secrets. User-created ConfigMaps and Secrets live in the user's namespace because the `workspace` ServiceAccount is bound to the built-in `edit` ClusterRole there. Backup and retention for those objects is a cluster policy concern, not something dwpk automates.
+
+## Observability toggles
+
+`Workspace.spec.observability` has two boolean fields:
+
+- `logsEnabled`
+- `metricsEnabled`
+
+Current implementation in `internal/workspace/statefulset.go`:
+
+- `logsEnabled` writes pod annotation `dwpk.devops-ia.io/logs-enabled=<true|false>`
+- `metricsEnabled` writes pod label `dwpk.devops-ia.io/metrics-enabled=<true|false>`
+
+What the repo does not ship:
+
+- A log shipping sidecar injector for that annotation
+- A workspace `PodMonitor` or Prometheus scrape job keyed off that label
+
+So these fields are hooks for cluster-level observability automation. Turning them on in the CRD only has an effect if your cluster has something watching that annotation or label.
+
+## Admin UI screens
+
+The UI has six admin routes:
+
+- `/admin/overview` - the platform at a glance: people, workspaces, catalog entries, and what is running now
+- `/admin/users` - one row per person: their `UserSpace` joined to any local password logins sharing its owner. Role, quota and account status are changed here, and new users are added from the dialog at the top
+- `/admin/workspaces` - every workspace in the cluster, with start, stop and delete. The delete dialog is where the home volume can be removed with the workspace
+- `/admin/quota` - per-namespace usage against limit, computed from the `Workspace` objects that are actually running
+- `/admin/catalog` - create, edit, deprecate and delete `WorkspaceImage` entries
+- `/admin/settings` - the platform name and logo, the GPU resource name, and a read-only table of every environment variable the UI process read at startup
+
+`/admin/users` replaced two earlier screens, `/admin/userspaces` and a separate local-user list. Keeping them apart meant nothing told you that a login had no `UserSpace` behind it, which is an account that exists and cannot sign in. The merged screen shows that row and says so.
+
+Each screen acts under the session's own token, so the API server decides what it may do. `/admin/users` also runs a `SelfSubjectAccessReview` before rendering, which saves showing a form that would 403 on submit.
+
+Every signed-in user has `/profile`: their role, quota with usage, and their own workspaces. Someone who signs in with a local password can change it there; an OAuth2 user is told their password lives with their provider.
+
+## Session and token lifecycle
+
+UI sessions are server-side, in memory.
+
+Defaults from code:
+
+- UI session TTL: `15m`
+- Login challenge TTL: `5m`
+- Minted Kubernetes service account token lifetime: `1h`
+
+Cookie names from `internal/ui/helpers.go`:
+
+- `dwpk_ui_session`
+- `dwpk_ui_login_state`
+- `dwpk_ui_login_next`
+
+Cookie behavior from `internal/ui/login.go` and `internal/ui/middleware.go`:
+
+- The session cookie is `HttpOnly`.
+- `Secure` follows `DWPK__UI_COOKIE_SECURE`, default `true`.
+- `SameSite=Lax`.
+- The cookie stores only an opaque session ID.
+- The bearer token is re-minted through `TokenRequest` and kept server-side.
+- Logout deletes the UI session only. It does not stop the workspace.
+
+## Day-2 operations
+
+### Review readiness and failures
+
+```
+kubectl get userspaces
+kubectl get workspaces -A
+kubectl describe workspace -n <namespace> <name>
+kubectl logs -n dwpk-system deployment/dwpk-controller-manager
+```
+
+Look at:
+
+- `status.phase`
+- `status.conditions`
+- webhook rejections on create or update
+- image pull failures or scheduling failures on the workspace pod
+
+### Rotate OAuth client secrets
+
+Update the Secret referenced by `ui.oauth.existingSecret`, then restart the UI Deployment so new environment values are loaded.
+
+### Rotate the gateway host key
+
+If the gateway uses `gateway.hostKey.existingSecret`, replace that Secret and restart the gateway pods. If the chart uses the default `emptyDir` host key storage, every pod restart rotates the host key already.
+
+## Backup and recovery
+
+What to back up:
+
+- CRDs and CR instances: `WorkspaceImage`, `UserSpace`, `Workspace`
+- User namespaces created by the `UserSpace` reconciler
+- PVCs for workspace home directories
+- Any user-created ConfigMaps and Secrets in those namespaces
+- OAuth client Secret and optional gateway host key Secret in `dwpk-system`
+
+What recovery looks like:
+
+1. Restore the control plane components.
+1. Restore CRDs.
+1. Restore `WorkspaceImage` and `UserSpace` objects.
+1. Restore user namespaces and PVCs.
+1. Restore `Workspace` objects.
+
+Because home PVCs outlive the `Workspace`, storage recovery depends on preserving the namespace and the PVC. dwpk does not have its own backup controller.
+
+# User guide
+
+## Before you start
+
+A cluster admin must create your `UserSpace` first. The UI login flow resolves your provider email against `UserSpace.spec.owner`. If there is no match, login is denied.
+
+## Sign in
+
+Open the UI `/login` page. Current provider buttons in the code:
+
+- Entra ID
+- Google
+- GitLab
+- Keycloak
+- GitHub
+
+Flow:
+
+1. Pick your provider.
+1. Complete the provider login.
+1. Return to dwpk.
+1. Land on the catalog page if your email matches an existing `UserSpace`.
+
+The UI session cookie is separate from your workspace lifecycle. Logging out does not stop a running workspace.
+
+## Getting started
+
+Your first sign-in lands on a four-step walkthrough: add an SSH key, browse the catalog, start a workspace, finish. It is optional. Navigate away whenever you like — nothing is blocked while it is unfinished, and **Get started** stays in the sidebar until you press Finish, which is also how you get back to it. After that it disappears and every sign-in goes straight to your overview.
+
+If you dismiss it and later want it again, `/onboarding` still renders. Pressing Finish a second time changes nothing.
+
+## Browse the catalog
+
+The catalog page is `/` after login.
+
+What you can do there:
+
+- Search by free text with `q`
+- Filter by tag with `tag`
+- Show deprecated entries with `deprecated=1`
+
+The backend checks `use` permission on each `WorkspaceImage` with `SelfSubjectAccessReview`. If you are not allowed to use an image, it does not appear in the catalog.
+
+## Create a workspace
+
+Open `Create workspace` from a catalog card, or go to `/new?image=<workspaceimage-name>`.
+
+Fields on the form:
+
+- Name, unique among your workspaces
+- Resources: CPU and memory as a minimum and a maximum, then GPU and storage
+- SSH public key
+
+Notes from the current UI:
+
+- There are no size presets. You type the resources you want, within your quota.
+- CPU and memory have a min and a max - a request and a limit. The minimum is what is reserved for you and counted against your quota; the maximum is what you may burst to.
+- GPU and storage take one value each. A PVC has a single size, and Kubernetes requires a GPU request and limit to be equal.
+- The form checks your remaining quota as you type, and the admission webhook checks it again on submit. The second check is the one that counts.
+- Storage cannot be changed afterwards: a PVC cannot shrink. Everything else needs the workspace recreated, which is why the form is worth a second look.
+- The SSH key field remembers the last key in browser `localStorage` under `dwpk.lastSshPublicKey`.
+- The UI submits a normal `Workspace` object to the Kubernetes API. Validation errors come back from the API server.
+
+## Wait for it to start
+
+After create, the UI redirects to `/w/<workspace-name>`.
+
+The page shows:
+
+- `status.phase`
+- Endpoint
+- Conditions summary
+- The full SSH command
+- A VS Code Remote-SSH deep link
+- Start and stop buttons
+
+While the workspace is not settled, the page polls `/w/<workspace-name>/status` every 3 seconds.
+
+## Connect with SSH
+
+The command shown on the page is:
+
+```
+ssh <workspace-name>@<gateway-host>
+```
+
+The SSH username is the workspace name. Authentication is by public key. The gateway accepts the session only when the offered public key matches one of the entries in `Workspace.spec.sshAuthorizedKeys`.
+
+If your client prompts about a new host key often, ask your admin whether the gateway is using an ephemeral host key instead of a Secret-backed fixed key.
+
+## Connect with VS Code Remote-SSH
+
+The UI builds this link format:
+
+```
+vscode://vscode-remote/ssh-remote+<workspace-name>@<gateway-host>/
+```
+
+Click `Open in VS Code`, or paste the same SSH target into Remote-SSH manually.
+
+Catalog image contract for VS Code in this repo:
+
+- A shell, `bash` or `sh`
+- `curl` or `wget`
+- `tar`
+- `gzip`
+
+If VS Code fails during server bootstrap, the image may be missing one of those tools.
+
+## Use the browser terminal
+
+The workspace page has a `Terminal` tab. Current state in the repo:
+
+- Backend websocket path exists at `/w/<workspace-name>/terminal/ws`
+- The frontend is a textarea fallback, not a full terminal emulator
+- Press `Enter` to send the current line
+- Use `Shift+Enter` for a newline in the textarea
+
+This terminal reuses the same gateway exec path as SSH.
+
+A chip above the output says whether you are connected. If the connection drops
+
+- the pod restarted, the workspace was stopped, the network moved - it turns red and a `Reconnect` button appears. The tab shows `No pod to attach to` when the workspace is suspended, because there is nothing to attach to yet.
+
+## Read the workspace logs
+
+Beside `Terminal` is a `Logs` tab. It tails the last 200 lines the workspace container wrote to stdout or stderr, refreshed every five seconds.
+
+It reads with your own token, so you see the logs of workspaces in your own namespace and nobody else's. A refusal shows the API server's own message rather than a generic error.
+
+Four things it can say, and what each means:
+
+- Log lines - the container is writing output.
+- `No output yet` - the container is running and has written nothing. Not a fault.
+- `No pod is running` - the workspace is stopped. Start it first.
+- `Logs are unavailable` - with the reason underneath, usually an RBAC message.
+
+There is no metrics view. Resource numbers live on the quota screen.
+
+## Start and stop a workspace
+
+The page has `Start` and `Stop` buttons.
+
+What they do:
+
+- `Start` patches `spec.running=true`
+- `Stop` patches `spec.running=false`
+
+What that means in the cluster:
+
+- `true` scales the workspace `StatefulSet` to one replica
+- `false` scales it to zero replicas
+- The home PVC stays in place either way
+
+Stopping a workspace is different from logging out:
+
+- Logout clears the UI session only.
+- Stop changes the workspace state in Kubernetes.
+
+## What persists
+
+Your home directory lives on the workspace PVC. Stop and start keep that data.
+
+Deleting a workspace is immediate and cannot be undone. Its pod and its SSH endpoint go with it.
+
+The home volume is a separate object - the PVC named `home-<workspace-name>-0` - and Kubernetes never removes it on its own. The delete dialog therefore asks: **Delete the home volume as well** is ticked by default, and untick it to keep the data. Deleting the workspace with the box unticked leaves the volume behind, unattached; creating a new workspace with the same name does not reattach it, so remove it by hand when you no longer want it:
+
+```
+kubectl delete pvc home-<workspace-name>-0 -n <your-namespace>
+```
+
+Because the volume goes by default, the dialog asks you to type the workspace name before it will delete anything. Deleting over the REST API never touches the volume.
+
+The repo also allows you to use Kubernetes resources in your namespace with the workspace service account, because that service account is bound to the built-in `edit` ClusterRole in your namespace.
+
+## What you cannot do by default
+
+The default session token does not grant cluster-wide admin rights.
+
+That means:
+
+- You cannot list other users' namespaces or workspaces.
+- The `/admin/users` and `/admin/quota` pages usually return `403 Forbidden` for normal users.
+- You only get the permissions already bound to the `workspace` ServiceAccount in your namespace.
+
+# The SSH gateway on AWS
+
+How to expose the dwpk gateway on EKS with the AWS Load Balancer Controller.
+
+## An ALB cannot carry SSH
+
+Start here, because it saves an afternoon.
+
+An **Application Load Balancer is HTTP and HTTPS only**. It parses requests, it routes on hostnames and paths, and it has no notion of a raw TCP stream. SSH is not HTTP, so an ALB cannot carry it - not with an annotation, not with a listener rule, not at all.
+
+The gateway needs a **Network Load Balancer**, which is layer 4 and forwards TCP untouched. The AWS Load Balancer Controller provisions both kinds, so the controller in the request is the right one; it is the load balancer type that has to differ.
+
+The split for a dwpk install is:
+
+| Component | Protocol     | Load balancer | Kubernetes object             |
+| --------- | ------------ | ------------- | ----------------------------- |
+| Gateway   | SSH (TCP/22) | **NLB**       | `Service` type `LoadBalancer` |
+| UI        | HTTPS        | **ALB**       | `Ingress`                     |
+
+## The gateway Service
+
+The chart creates a `Service` of type `LoadBalancer` on port 22. On EKS the controller turns that into an NLB when you ask it to:
+
+```
+gateway:
+  service:
+    type: LoadBalancer
+    annotations:
+      # Hand this Service to the AWS Load Balancer Controller rather than to the
+      # legacy in-tree cloud provider. Without it you may still get a load
+      # balancer - the old classic one - and none of the annotations below.
+      service.beta.kubernetes.io/aws-load-balancer-type: external
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      # Health checks. The gateway speaks SSH, so a TCP check is the only
+      # meaningful one; see "Health checks and log noise" below.
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: tcp
+      service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "22"
+```
+
+**`nlb-target-type: ip`** sends traffic straight to pod IPs rather than through a node port. It removes a hop, and it keeps the source address intact without `externalTrafficPolicy: Local` and the scheduling constraints that brings.
+
+**`scheme`** is `internet-facing` or `internal`. Internal is the right default if people reach the cluster over a VPN or Direct Connect: an SSH endpoint on the public internet will be found by scanners within minutes, and while it only accepts public keys, there is no reason to advertise it.
+
+## Health checks and log noise
+
+An NLB health check opens a TCP connection to port 22, decides the target is healthy because the connection succeeded, and closes it without speaking SSH. The kubelet's own `tcpSocket` probe does the same.
+
+The gateway logs each of these at **debug**:
+
+```
+DEBUG gateway SSH handshake did not complete {"client": "10.0.1.23:41234", "reason": "EOF"}
+```
+
+That line is expected, and there will be one per health-checking source per interval - the NLB from each subnet, plus the kubelet. It used to be logged at error, which made a perfectly healthy gateway look broken. A genuine authentication failure is logged separately and stays visible at a normal level.
+
+If you want the noise gone entirely, raise the health check interval; do not raise the log level, or you lose real failures with it.
+
+## Idle timeout
+
+NLB idle timeout for TCP flows is **350 seconds and cannot be changed**. An SSH session sitting at a prompt sends nothing, so it will be cut after roughly six idle minutes unless something keeps the flow alive.
+
+Two ways to handle it, and you want at least one:
+
+- **Client side**, in `~/.ssh/config` - the usual answer:
+
+```
+Host *.dwpk.example.com
+  ServerAliveInterval 60
+  ServerAliveCountMax 3
+```
+
+- **Server side**, by enabling TCP keepalives on the gateway Service:
+
+```
+service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: |
+  preserve_client_ip.enabled=true
+```
+
+A dropped session loses the terminal, not the workspace: the pod keeps running and reconnecting picks up where the shell left off - with the caveat that anything running in the foreground of that shell dies with it. `tmux` inside the workspace is worth the habit.
+
+## Security groups
+
+With `nlb-target-type: ip`, traffic arrives at the pod ENI, so the **node's** security group must allow TCP/22 from wherever you decided `scheme` puts the listener - the VPC CIDR for `internal`, or the world for `internet-facing`.
+
+The controller can manage this for you:
+
+```
+service.beta.kubernetes.io/aws-load-balancer-manage-backend-security-group-rules: "true"
+```
+
+Leave it off and you must open the rule yourself, and the symptom is a connection that hangs rather than one that is refused.
+
+## Client IP
+
+`preserve_client_ip.enabled=true` on the target group keeps the real source address, which is what makes the gateway's connection logs worth reading. It is on by default for `ip` targets and off for `instance` targets.
+
+It has one consequence worth knowing: with client IP preserved, a pod cannot reach the load balancer that fronts its own Service - the packet arrives with a source address it then tries to reply to directly. Nothing in dwpk does that, but a debugging session that tries `ssh` from inside a workspace to the platform's own endpoint will hang, and this is why.
+
+## DNS
+
+Point a record at the load balancer and use it as the SSH host:
+
+```
+*.dwpk.example.com  CNAME  k8s-dwpksys-dwpkgate-abc123.elb.eu-west-1.amazonaws.com
+```
+
+The gateway identifies a workspace from the **SSH username**, not the hostname, so a single record serves everyone:
+
+```
+ssh alice-dev@dwpk.example.com
+```
+
+That username is `<user>-<workspace>`. It carries the owner because a workspace name is unique only inside its namespace - two people can each have one called `dev`, and the gateway matches across the whole cluster. `status.endpoint` on each Workspace publishes the exact string, which is what the UI shows and what the VS Code deep link uses.
+
+## Checking it works
+
+```
+# The load balancer exists and has an address.
+kubectl get svc -n dwpk-system dwpk-gateway-service
+
+# Targets are healthy. Unhealthy here with a Running pod is almost always the
+# security group.
+aws elbv2 describe-target-health --target-group-arn <arn>
+
+# End to end, with the key on the Workspace.
+ssh -v alice-dev@dwpk.example.com
+```
+
+`ssh -v` is worth the habit: it distinguishes a network problem (no banner) from an authentication one (banner, then `Permission denied (publickey)`), and those have entirely different causes.
+
+## The UI, which does belong behind an ALB
+
+The UI is ordinary HTTPS, so it goes through an Ingress:
+
+```
+ui:
+  ingress:
+    enabled: true
+    className: alb
+    annotations:
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:...
+      alb.ingress.kubernetes.io/ssl-redirect: "443"
+```
+
+Serve it over HTTPS and leave `ui.cookieSecure` at its default of `true`. The session cookie is the credential for a browser session; over plain HTTP it travels in clear, and the browser will not treat it as secure. Local development against `http://localhost` is the only place `cookieSecure: false` belongs.
+
+The UI's WebSocket endpoints - the browser terminal - work through an ALB without extra configuration; ALB has supported WebSocket upgrades since it shipped. Raise the ALB idle timeout above its 60-second default if you want long terminal sessions to survive being left alone:
+
+```
+alb.ingress.kubernetes.io/load-balancer-attributes: idle_timeout.timeout_seconds=3600
+```
+# Reference
+
+# Architecture
+
+## Overview
+
+dwpk has three runtime components:
+
+- `cmd/manager`, the Kubebuilder controller manager
+- `cmd/gateway`, the SSH gateway
+- `cmd/ui`, the marketplace web UI
+
+The control plane state lives in Kubernetes objects. dwpk does not use an external database.
+
+## Component map
+
+```
+Developer browser / VS Code / ssh client
+            |
+            | HTTPS or SSH
+            v
++------------------------------+
+| dwpk UI                      |
+| OAuth2 login, session store, |
+| TokenRequest per request     |
++------------------------------+
+            |
+            | Kubernetes API with minted ServiceAccount token
+            v
++------------------------------+
+| kube-apiserver               |
+| WorkspaceImage, UserSpace,   |
+| Workspace, RBAC, webhooks    |
++------------------------------+
+            ^
+            |
++------------------------------+        +------------------------------+
+| dwpk manager                 |        | dwpk gateway                 |
+| reconciles CRDs into         |        | SSH auth, pods/exec,         |
+| namespaces, quotas,          |        | pods/portforward             |
+| StatefulSets, Services       |        +------------------------------+
++------------------------------+                     |
+            |                                        |
+            +------------------------------+---------+
+                                           |
+                                           v
+                                user namespace, workspace pod,
+                                home PVC, ServiceAccount, RBAC
+```
+
+## API model
+
+Four CRDs define the product surface:
+
+- `WorkspaceImage`, cluster scoped catalog entries curated by admins or synced from a registry
+- `UserSpace`, cluster scoped records that map one person to one namespace and its quota, RBAC, and network policy
+- `Workspace`, namespaced developer sessions backed by a single-replica `StatefulSet`
+- `ImageRegistry`, cluster scoped configuration for an external registry (AWS ECR today) to poll and sync into the catalog
+
+Relationship chain:
+
+1. A `WorkspaceImage` publishes the runtime image, placement rules, working directory, and UID. It does not publish sizes: resources are chosen per workspace. It optionally names an `imagePullSecretRef` for a private image.
+1. A `UserSpace` provisions `dwpk-<name>` and binds the owner, plus the `session` and `workspace` ServiceAccounts, to namespace-scoped access. It also mirrors every labelled pull Secret from the manager's namespace into its own, so a private catalog image can actually be pulled there.
+1. A `Workspace` in that namespace references one `WorkspaceImage` by name and turns into a headless `Service`, a single-pod `StatefulSet`, and a retained home PVC.
+1. An `ImageRegistry` polls its configured registry on an interval, applies include/exclude and tag selection, and owns the `WorkspaceImage` objects it creates (labelled by registry name, so a prune pass and a second registry never collide).
+
+## Manager
+
+`cmd/manager` wires three reconcilers and the `Workspace` admission webhooks. `ImageRegistryReconciler` is the one built around a poll timer rather than purely a watch.
+
+### UserSpace reconciliation
+
+`internal/controller/userspace_controller.go` turns one `UserSpace` into these children:
+
+- Namespace `dwpk-<userspace-name>`
+- `ResourceQuota` named `dwpk-quota`
+- `LimitRange` named `dwpk-limits`
+- `NetworkPolicy` named `dwpk-isolation`
+- Three `ServiceAccount`s: `workspace`, `session`, and `session-readonly` (see below)
+- Role `dwpk-workspace-user` (full owner rights) and Role `dwpk-workspace-reader` (read-only)
+- RoleBindings `dwpk-owner`, `dwpk-reader`, and `dwpk-workspace-edit`
+- ClusterRole `dwpk-userspace-<userspace-name>`
+- ClusterRoleBinding `dwpk-userspace-<userspace-name>`
+
+Three ServiceAccounts, not one, because a browser session and a workspace container must never share an identity (`internal/workspace/names.go`):
+
+- `workspace` is the identity the workspace pod itself runs as. The `dwpk-workspace-edit` RoleBinding grants it the built-in `edit` ClusterRole, scoped to that namespace only - this is what makes `kubectl` work from inside a session against the user's own namespace.
+- `session` is the identity the UI mints a token for on every authenticated request (`TokenScopeFull`). It is bound into `dwpk-owner` alongside the human's own OIDC `User` subject, so a browser session gets exactly the same namespaced rights as the owner: full CRUD on `Workspace`, pod/log/event reads, and the `pods/exec` grant the browser terminal needs.
+- `session-readonly` backs read-scoped API tokens (`TokenScopeRead`, see [API reference](https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md)). It is bound into `dwpk-reader`, the same shape as `dwpk-owner` minus every write verb. Kubernetes cannot narrow a `TokenRequest` below the ServiceAccount's own rights, so a read-only token has to mint for a ServiceAccount that only ever had read rights to begin with.
+
+The ClusterRole exists because `UserSpace` and `WorkspaceImage` are cluster scoped. It grants:
+
+- `get`, `watch`, and `patch` on exactly one `UserSpace`, via `resourceNames` (`patch` only so a person can save their own SSH keys from *My profile* - the validator refuses anyone but an administrator changing a field besides `spec.sshAuthorizedKeys`)
+- `get`, `list`, `watch`, and the custom `use` verb on `WorkspaceImage`
+
+Its ClusterRoleBinding names three subjects: the owner's OIDC `User`, `session`, and `session-readonly` - all three read the catalog and their own `UserSpace` by name.
+
+The reconciler also resolves the Kubernetes API server address from the `kubernetes` Service and its `EndpointSlice` objects, then bakes that address into the `NetworkPolicy` egress rules.
+
+### Workspace reconciliation
+
+`internal/controller/workspace_controller.go` drives the developer session lifecycle.
+
+Flow:
+
+1. Fetch the referenced `WorkspaceImage`.
+1. Fail with `status.phase=Pending` and `ImageResolved=False` if the image does not exist.
+1. Fail if `spec.storage` is still unset, which means the CRD default did not apply.
+1. Apply a headless `Service` first, then a `StatefulSet`.
+1. Reflect observed state into `status.phase`, `status.endpoint`, `status.podName`, `status.observedGeneration`, and `status.conditions`.
+
+The controller uses a `StatefulSet`, not a `Deployment` or a bare `Pod`, because the `StatefulSet` gives stable pod naming, suspend and resume through `replicas`, and PVC retention across restarts.
+
+`spec.running=true` maps to one replica. `spec.running=false` maps to zero replicas. The controller never deletes the home PVC - not when a workspace is suspended, and not when it is deleted. Removing it is an explicit act by the person deleting the workspace, offered in the UI's delete dialog and carried out with their own token.
+
+### Webhooks
+
+The manager serves two `Workspace` webhooks:
+
+- A mutating webhook on CREATE
+- A validating webhook on CREATE and UPDATE
+
+The mutating webhook does two things, both needing an object the CRD cannot see:
+
+- Copies the owner's `UserSpace.spec.sshAuthorizedKeys` when the workspace names none
+- Stamps `metadata.annotations["dwpk.devops-ia.io/requester"]` from `request.userInfo.username`
+
+The validating webhook makes the cross-object checks:
+
+- `spec.imageRef.name` must resolve, and on create the entry must still be on offer
+- Every SSH key must parse as a real key blob, which CEL cannot do - it can check a prefix but cannot decode base64
+- `spec.volumes` must not shadow the home volume, and mounts must resolve
+- Requests must not exceed limits, and an extended resource must have them equal
+- The requested resources plus what is already running must fit in `UserSpace.spec.quota`, workspace count included
+
+The quota check runs on update as well as create. It used to be skipped there, on the reasoning that a count cannot change on an update - which stopped being true when resources became free-form, since a resize is an update.
+
+Rules that do not need cross-object reads stay on the CRD as CEL validations. Examples: `UserSpace.spec.owner` immutability, `Workspace.spec.storage` immutability, SSH key prefix checks, and `running=true` requiring at least one SSH key.
+
+## SSH gateway
+
+The gateway is a separate stateless server. It does not use leader election.
+
+Connection flow in `internal/gateway/server.go`:
+
+1. Accept SSH on the configured listen address.
+1. List `Workspace` objects.
+1. Match the SSH username to `Workspace.metadata.name`.
+1. Parse each `spec.sshAuthorizedKeys` entry and compare the offered public key.
+1. Store the resolved namespace and workspace name in SSH permissions.
+1. Re-fetch the `Workspace` and reject the session if it is not `Running`.
+1. Resolve the pod from `status.podName` or `<workspace-name>-0`.
+1. Reject the target if the pod does not carry `dwpk.devops-ia.io/workspace=<workspace-name>`.
+1. Open `pods/exec` for shell and exec channels.
+1. Open `pods/portforward` when SSH `direct-tcpip` targets `localhost`, `127.0.0.1`, or `::1`.
+1. Patch `status.lastActivityTime` on session open and close.
+
+Why `pods/portforward` matters: VS Code Remote-SSH opens loopback listeners inside the pod. The gateway uses `pods/portforward` for `direct-tcpip` so those listeners stay reachable.
+
+## UI
+
+The UI is a Go server with `templ` templates, htmx, and embedded assets. It is not a SPA.
+
+Routes from `internal/ui/server.go`:
+
+- `GET /login`
+- `GET /login/{provider}`
+- `GET /callback/{provider}`
+- `GET /` (dashboard)
+- `GET /catalog`
+- `GET /workspace-images/{name}/icon`
+- `GET /new`
+- `POST /new`
+- `GET /w/{name}`
+- `GET /w/{name}/status`
+- `POST /w/{name}/start`
+- `POST /w/{name}/stop`
+- `GET /w/{name}/logs`
+- `GET /api/v1/workspaces` and the rest of the REST surface - see `docs/API_REFERENCE.md`
+- `GET /w/{name}/terminal/ws`
+- `GET /admin/overview`
+- `GET /admin/users`
+- `GET /admin/quota`
+- `GET /admin/catalog`
+- `GET /admin/settings`
+- `GET /admin/workspaces`
+- `GET /profile`
+- `POST /profile/password`
+- `POST /logout`
+
+Current screens:
+
+- Login picker
+- Dashboard: workspace status cards, counts, and quota usage - the landing page
+- Catalog with text and tag filters, plus a deprecated toggle, at `/catalog`
+- Workspace create form
+- Workspace details page with SSH command, VS Code deep link, start and stop buttons
+- Browser terminal tab backed by a websocket, with a connection chip and a reconnect button
+- Logs and Events tabs, both read with the requesting user's own token
+- Admin users page, joining UserSpaces to local password logins
+- Admin quota page, usage against limit
+- Admin catalog, workspaces, overview and settings pages
+- My profile, with quota usage and a password change for local logins
+
+The terminal is xterm.js, vendored under `internal/ui/assets/vendor` because the CSP allows no CDN. It connects when its tab is first opened and not before: one websocket is one `kubectl exec`, so connecting on page load started a shell in the pod whether or not anyone wanted one.
+
+`internal/ui/workspace.templ` splits the page in two on purpose. Only the status card polls; the tab bar, the terminal and the log view sit outside it. They used to be inside the polled region, so every three-second tick replaced the terminal element - orphaning its socket, wiping the output and resetting the selected tab. Anything that has to survive a poll belongs outside `WorkspaceStatusCard`.
+
+Logs poll rather than stream. A second websocket would be a second transport to secure for a tail a five-second `GET` already delivers. There is no metrics view: it would need `metrics.k8s.io`, which dwpk does not depend on.
+
+Destructive actions go through `confirmDelete` in `internal/ui/layout.templ` - a native `<dialog>` holding the POST form, so the button on the page only ever opens a question. The workspace confirmation names the retained home PVC, because no `persistentVolumeClaimRetentionPolicy` is set on the StatefulSet (`internal/workspace/statefulset.go`) and the volume therefore outlives the workspace.
+
+## Multi-provider auth model
+
+The provider registry supports these names:
+
+- `entra-id`
+- `google`
+- `gitlab`
+- `keycloak`
+- `github`
+
+`cmd/ui/main.go` loads provider config from environment. OIDC providers use issuer discovery plus ID token claim checks. GitHub uses OAuth2 plus REST calls to `/user` and `/user/emails` because it is the one supported provider without an ID token flow in this codebase.
+
+Per login:
+
+1. User picks a provider at `/login`.
+1. UI creates a short-lived login challenge with state and nonce.
+1. Provider returns an authorization code to `/callback/{provider}`.
+1. UI exchanges the code for tokens.
+1. UI reads a verified email from the provider response.
+1. UI resolves a `UserSpace` whose `spec.owner` equals that email.
+1. UI creates a server-side session and stores only an opaque session ID in the browser cookie.
+1. For each authenticated request, UI mints a short-lived token for the `session` ServiceAccount in the user's namespace by calling the Kubernetes `TokenRequest` API (`session-readonly` instead, for a read-scoped API token - see [API reference](https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md)).
+1. UI forwards Kubernetes requests with that minted token.
+
+This matters for security. The UI does not keep standing Kubernetes write access for user actions. Authorization still comes from the `session` ServiceAccount's own RBAC in the target namespace - a separate identity from the `workspace` ServiceAccount the pod itself runs as, so a shell inside a workspace never inherits whatever rights an administrator's own browser session carries.
+
+## Security boundaries
+
+Main boundaries in the current code:
+
+- Identity comes from external OAuth2 providers.
+- Namespace isolation comes from one `UserSpace` namespace per person.
+- Catalog access is checked with `SelfSubjectAccessReview` for the custom `use` verb on `WorkspaceImage`.
+- Session access comes from exact public key matches in `Workspace.spec.sshAuthorizedKeys`.
+- Workspace API access comes from a minted `session` (or, for a read-scoped API token, `session-readonly`) ServiceAccount token scoped to the user's namespace - never the `workspace` ServiceAccount the pod itself runs as.
+- Gateway pod access is derived from the `Workspace` object, never from a client-supplied pod name.
+- Webhook `namespaceSelector` excludes `dwpk-system` and `kube-system` so system workloads do not deadlock behind the webhook.
+- `ImageRegistry` credentials are never stored in the cluster: auth resolves through the AWS SDK's default credential chain (IRSA, EKS Pod Identity, an instance profile, or `spec.aws.roleArn` assumed via STS), all resolved inside the manager process. The one Secret this feature does touch - `imagePullSecretRef` - lives in the manager's own namespace and is mirrored per user namespace by `UserSpaceReconciler`, never read by the gateway (SPEC §6.5: the gateway never reads Secrets).
+
+## High availability
+
+Leader election is enabled only for the manager. `cmd/manager/main.go` sets:
+
+- `LeaderElection=true` when `--leader-elect` is passed
+- `LeaderElectionID=dwpk-controller.dwpk.devops-ia.io`
+- `LeaderElectionNamespace=dwpk-system`
+- Lease duration 15s
+- Renew deadline 10s
+- Retry period 2s
+- `LeaderElectionReleaseOnCancel=true`
+
+The raw kustomize deployment in `config/manager/manager.yaml` runs two manager replicas. The Helm chart defaults `manager.replicas` to `1`, so HA with Helm needs an explicit override.
+
+The gateway and UI are ordinary stateless Deployments. The chart defaults are `gateway.replicas=2` and `ui.replicas=1`.
+
+## Current implementation notes
+
+A few design points are present in the API or spec but not finished in code:
+
+- `Workspace.spec.idleTimeout` exists, and the gateway updates `status.lastActivityTime`, but there is no `IdleReconciler` in the repository yet. Auto-stop on idle is not implemented.
+- `Workspace.spec.observability.logsEnabled` and `metricsEnabled` only stamp a pod annotation and label. The repo does not ship a workspace log sidecar injector or a workspace `PodMonitor`.
+- The admin pages are routed in the UI, but the standard per-user `session` ServiceAccount does not get cluster-wide list rights. Those pages only work if an admin adds broader RBAC for that user's `session` service account.
+
+# API reference
+
+The REST API's machine-readable schema is at [`openapi.yaml`](https://devops-ia.github.io/dwpk/1.0/openapi.yaml).
+
+## Group and version
+
+- API group: `dwpk.devops-ia.io`
+- Version: `v1alpha1`
+
+## Kinds and scope
+
+| Kind             | Scope      |
+| ---------------- | ---------- |
+| `WorkspaceImage` | Cluster    |
+| `UserSpace`      | Cluster    |
+| `Workspace`      | Namespaced |
+| `ImageRegistry`  | Cluster    |
+
+## Common status shape
+
+Every CRD listed above uses `status.conditions` as `[]metav1.Condition`.
+
+Each condition item has the standard Kubernetes fields:
+
+- `type`
+- `status`, one of `True`, `False`, `Unknown`
+- `reason`
+- `message`
+- `lastTransitionTime`
+- `observedGeneration`, optional
+
+## WorkspaceImage
+
+Scope: cluster.
+
+Printer columns from `api/v1alpha1/workspaceimage_types.go`:
+
+- `Display Name` from `.spec.displayName`
+- `Image` from `.spec.image`
+- `Deprecated` from `.spec.deprecated`
+- `Age` from `.metadata.creationTimestamp`
+
+### spec
+
+| Field                          | Type                          | Required | Default                | Validation                        | Notes                                                                                                                                                                                                                                                                     |
+| ------------------------------ | ----------------------------- | -------- | ---------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `spec.displayName`             | `string`                      | Yes      | None                   | None                              | Catalog title shown to users.                                                                                                                                                                                                                                             |
+| `spec.description`             | `string`                      | No       | None                   | None                              | Catalog description text.                                                                                                                                                                                                                                                 |
+| `spec.icon`                    | `string`                      | No       | None                   | None                              | Icon URL.                                                                                                                                                                                                                                                                 |
+| `spec.tags[]`                  | `string`                      | No       | None                   | None                              | Tag list used by the UI filters.                                                                                                                                                                                                                                          |
+| `spec.maintainer`              | `string`                      | No       | None                   | None                              | Contact string for the entry.                                                                                                                                                                                                                                             |
+| `spec.deprecated`              | `boolean`                     | No       | `false`                | None                              | Hidden from the catalog unless the user asks to show deprecated entries.                                                                                                                                                                                                  |
+| `spec.image`                   | `string`                      | Yes      | None                   | None                              | Container image reference for the workspace pod.                                                                                                                                                                                                                          |
+| `spec.imagePullPolicy`         | `corev1.PullPolicy`           | No       | `IfNotPresent`         | `Always`, `IfNotPresent`, `Never` | Passed into the workspace container.                                                                                                                                                                                                                                      |
+| `spec.shell`                   | `string`                      | No       | `/bin/bash`            | None                              | Login shell the gateway execs.                                                                                                                                                                                                                                            |
+| `spec.homePath`                | `string`                      | No       | `/home/dev`            | None                              | Working directory and PVC mount path.                                                                                                                                                                                                                                     |
+| `spec.runAsUser`               | `integer`                     | No       | `1000`                 | None                              | Also used as `fsGroup` on the pod.                                                                                                                                                                                                                                        |
+| `spec.command[]`               | `string`                      | No       | `['sleep','infinity']` | None                              | Container command. Keeps generic images alive by default.                                                                                                                                                                                                                 |
+| `spec.allowRoot`               | `boolean`                     | No       | `false`                | None                              | Lets a workspace from this entry run as uid 0. Administrator-only.                                                                                                                                                                                                        |
+| `spec.deprecateAt`             | `metav1.Time`                 | No       | None                   | None                              | The entry stays fully usable until this moment, with a warning on the catalog; after it, it behaves as `deprecated`.                                                                                                                                                      |
+| `spec.placement`               | `WorkspacePlacement`          | No       | None                   | None                              | Scheduling constraints.                                                                                                                                                                                                                                                   |
+| `spec.placement.nodeSelector`  | `map[string]string`           | No       | None                   | None                              | Copied into the pod spec.                                                                                                                                                                                                                                                 |
+| `spec.placement.tolerations[]` | `corev1.Toleration`           | No       | None                   | Standard Kubernetes schema        | Copied into the pod spec.                                                                                                                                                                                                                                                 |
+| `spec.imagePullSecretRef`      | `corev1.LocalObjectReference` | No       | None                   | None                              | Names a pull Secret for a private image. dwpk replicates the Secret of this name from the manager's own namespace into every user namespace, so this field only ever needs to carry a name. An ImageRegistry sync stamps its own `imagePullSecretRef` here automatically. |
+
+A catalog entry no longer carries sizes or storage defaults. Resources are chosen per workspace and checked against the owner's quota at admission.
+
+### status
+
+| Field                 | Type               | Required | Default | Validation                 | Notes                               |
+| --------------------- | ------------------ | -------- | ------- | -------------------------- | ----------------------------------- |
+| `status.conditions[]` | `metav1.Condition` | No       | None    | Standard Kubernetes schema | Current state of the catalog entry. |
+
+### example
+
+```
+apiVersion: dwpk.devops-ia.io/v1alpha1
+kind: WorkspaceImage
+metadata:
+  name: python-3.12
+spec:
+  displayName: "Python 3.12"
+  description: "Python 3.12 with poetry, ruff and the AWS CLI."
+  icon: "https://cdn.example.com/icons/python.svg"
+  tags:
+    - python
+    - backend
+  maintainer: "platform@example.com"
+  deprecated: false
+  image: "ghcr.io/devops-ia/dwpk/python:3.12"
+  imagePullPolicy: IfNotPresent
+  shell: /bin/bash
+  homePath: /home/dev
+  runAsUser: 1000
+  command:
+    - sleep
+    - infinity
+  placement:
+    nodeSelector:
+      workload: worker
+    tolerations: []
+```
+
+## ImageRegistry
+
+Scope: cluster.
+
+Configures one external container registry to sync into the catalog (§4.6). Several ImageRegistry objects, including several of the same provider, may exist side by side - each syncs and prunes only the WorkspaceImages it owns (`ownerReferences`, labelled `dwpk.devops-ia.io/image-registry=<registry name>`).
+
+Printer columns from `api/v1alpha1/imageregistry_types.go`:
+
+- `Provider` from `.spec.provider`
+- `Images` from `.status.images`
+- `Last Sync` from `.status.lastSyncTime`
+- `Age` from `.metadata.creationTimestamp`
+
+### spec
+
+| Field                       | Type                          | Required | Default  | Validation                                       | Notes                                                                                                                                                                                            |
+| --------------------------- | ----------------------------- | -------- | -------- | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `spec.provider`             | `string`                      | Yes      | None     | `aws-ecr`                                        | Which registry API this object talks to. A second provider is a new enum value plus a new `registry.Provider` implementation, not a change to this type.                                         |
+| `spec.aws`                  | `AWSRegistry`                 | No       | None     | Required (CEL) when `spec.provider` is `aws-ecr` | AWS ECR configuration.                                                                                                                                                                           |
+| `spec.aws.region`           | `string`                      | Yes      | None     | Max length 32                                    | AWS region the registry lives in.                                                                                                                                                                |
+| `spec.aws.registryId`       | `string`                      | No       | None     | Max length 12                                    | AWS account ID. Empty resolves to the account the credentials belong to - what IRSA, EKS Pod Identity and an instance profile all resolve to without this ever being set.                        |
+| `spec.aws.roleArn`          | `string`                      | No       | None     | Max length 2048                                  | Assumed via STS before listing, for a registry in another account.                                                                                                                               |
+| `spec.sync.intervalSeconds` | `integer`                     | No       | `900`    | Minimum 60                                       | How often the registry is re-listed.                                                                                                                                                             |
+| `spec.sync.include[]`       | `string`                      | No       | None     | RE2                                              | Repository name patterns; empty means every repository is a candidate.                                                                                                                           |
+| `spec.sync.exclude[]`       | `string`                      | No       | None     | RE2                                              | Wins over include when both match.                                                                                                                                                               |
+| `spec.sync.tags.mode`       | `string`                      | No       | `latest` | `latest`, `pattern`                              | Newest tag by push time, or every tag matching `patterns`.                                                                                                                                       |
+| `spec.sync.tags.patterns[]` | `string`                      | No       | None     | RE2                                              | Used only when `mode` is `pattern`.                                                                                                                                                              |
+| `spec.sync.tags.limit`      | `integer`                     | No       | `1`      | Minimum 1                                        | Newest N matching tags per repository become catalog entries.                                                                                                                                    |
+| `spec.sync.prune`           | `boolean`                     | No       | `false`  | None                                             | Deletes a WorkspaceImage this registry previously created once its remote image is gone. Off by default: a briefly unreachable registry should not delete a catalog entry somebody may be using. |
+| `spec.imagePullSecretRef`   | `corev1.LocalObjectReference` | No       | None     | None                                             | Names a Secret, in the manager's own namespace, that dwpk replicates into every user namespace. Stamped onto every WorkspaceImage this registry creates.                                         |
+
+Force-syncing outside the configured interval is not a field: bump the `dwpk.devops-ia.io/force-sync` annotation to any new value and the standard watch retriggers a sync immediately.
+
+### status
+
+| Field                       | Type               | Required | Default | Validation                 | Notes                                                                                                                                        |
+| --------------------------- | ------------------ | -------- | ------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status.conditions[]`       | `metav1.Condition` | No       | None    | Standard Kubernetes schema | `Ready`/`Degraded`. A failed sync leaves `status.images` and `status.lastSyncTime` at their last known good value rather than clearing them. |
+| `status.observedGeneration` | `integer`          | No       | None    | None                       | The `metadata.generation` this status was computed from.                                                                                     |
+| `status.lastSyncTime`       | `metav1.Time`      | No       | None    | None                       | When the registry was last successfully listed.                                                                                              |
+| `status.images`             | `integer`          | No       | None    | None                       | How many WorkspaceImages this registry currently owns.                                                                                       |
+
+### example
+
+```
+apiVersion: dwpk.devops-ia.io/v1alpha1
+kind: ImageRegistry
+metadata:
+  name: team-ecr
+spec:
+  provider: aws-ecr
+  aws:
+    region: eu-west-1
+  sync:
+    intervalSeconds: 900
+    include: ["dwpk/.*"]
+    exclude: ["dwpk/scratch.*"]
+    tags:
+      mode: latest
+      limit: 1
+    prune: false
+```
+
+## UserSpace
+
+Scope: cluster.
+
+Printer columns from `api/v1alpha1/userspace_types.go`:
+
+- `Owner` from `.spec.owner`
+- `Namespace` from `.status.namespace`
+- `Phase` from `.status.phase`
+- `Workspaces` from `.spec.quota.workspaces`
+- `Age` from `.metadata.creationTimestamp`
+
+### spec
+
+| Field                   | Type                | Required | Default | Validation                                                | Notes                                                                                                |
+| ----------------------- | ------------------- | -------- | ------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `spec.owner`            | `string`            | Yes      | None    | Minimum length 1; immutable by CEL rule `self == oldSelf` | Email or Kubernetes username that owns this space.                                                   |
+| `spec.quota`            | `UserSpaceQuota`    | Yes      | None    | None                                                      | Namespace budget.                                                                                    |
+| `spec.quota.cpu`        | `resource.Quantity` | Yes      | None    | Kubernetes quantity syntax                                | Total requested CPU budget.                                                                          |
+| `spec.quota.memory`     | `resource.Quantity` | Yes      | None    | Kubernetes quantity syntax                                | Total requested memory budget.                                                                       |
+| `spec.quota.storage`    | `resource.Quantity` | Yes      | None    | Kubernetes quantity syntax                                | Total PVC storage budget.                                                                            |
+| `spec.quota.gpu`        | `integer`           | No       | `0`     | Minimum `0`                                               | GPUs the running workspaces may hold at once, counted against `PlatformConfig.spec.gpuResourceName`. |
+| `spec.quota.workspaces` | `integer`           | Yes      | None    | Minimum `0`                                               | Maximum number of `Workspace` objects in the namespace.                                              |
+| `spec.networkPolicy`    | `string`            | Yes      | None    | `Isolated`, `ClusterEgress`                               | Selects the egress posture the controller writes.                                                    |
+
+### status
+
+| Field                       | Type               | Required | Default | Validation                 | Notes                                                                       |
+| --------------------------- | ------------------ | -------- | ------- | -------------------------- | --------------------------------------------------------------------------- |
+| `status.namespace`          | `string`           | No       | None    | None                       | Namespace reconciled for this user.                                         |
+| `status.phase`              | `string`           | No       | None    | None                       | Coarse summary of current state. Code exports `Pending`, `Ready`, `Failed`. |
+| `status.observedGeneration` | `integer`          | No       | None    | None                       | Generation the status reflects.                                             |
+| `status.conditions[]`       | `metav1.Condition` | No       | None    | Standard Kubernetes schema | Readiness and degradation details.                                          |
+
+### example
+
+```
+apiVersion: dwpk.devops-ia.io/v1alpha1
+kind: UserSpace
+metadata:
+  name: alice
+spec:
+  owner: "alice@example.com"
+  quota:
+    cpu: "8"
+    memory: 32Gi
+    storage: 100Gi
+    gpu: 0
+    workspaces: 1
+  networkPolicy: Isolated
+```
+
+There is no configurable floor under `spec.quota` - the minimum is always zero. Only the maximum values above are ever set.
+
+## Workspace
+
+Scope: namespaced.
+
+Printer columns from `api/v1alpha1/workspace_types.go`:
+
+- `Image` from `.spec.imageRef.name`
+- `Status` from `.status.phase`
+- `Endpoint` from `.status.endpoint`
+- `Age` from `.metadata.creationTimestamp`
+
+### spec
+
+| Field                               | Type                          | Required | Default                              | Validation                                                                                     | Notes                                                                                            |
+| ----------------------------------- | ----------------------------- | -------- | ------------------------------------ | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `spec.imageRef`                     | `WorkspaceImageReference`     | Yes      | None                                 | None                                                                                           | Names the `WorkspaceImage` catalog entry.                                                        |
+| `spec.imageRef.name`                | `string`                      | Yes      | None                                 | Minimum length 1                                                                               | Cluster-scoped `WorkspaceImage` name.                                                            |
+| `spec.resources`                    | `corev1.ResourceRequirements` | No       | None                                 | Every request must be at most its limit; an extended resource must have request equal to limit | CPU, memory and GPU for the container. Checked against the owner's remaining quota at admission. |
+| `spec.nodeSelector`                 | `map[string]string`           | No       | The image's `placement.nodeSelector` | None                                                                                           | Overrides the catalog entry rather than merging with it.                                         |
+| `spec.tolerations[]`                | `corev1.Toleration`           | No       | The image's `placement.tolerations`  | Standard Kubernetes schema                                                                     | Overrides the catalog entry.                                                                     |
+| `spec.affinity`                     | `corev1.Affinity`             | No       | None                                 | Standard Kubernetes schema                                                                     | Copied into the pod spec.                                                                        |
+| `spec.env[]`                        | `corev1.EnvVar`               | No       | None                                 | Standard Kubernetes schema                                                                     | Copied into the container.                                                                       |
+| `spec.envFrom[]`                    | `corev1.EnvFromSource`        | No       | None                                 | Standard Kubernetes schema                                                                     | Whole Secrets and ConfigMaps as environment.                                                     |
+| `spec.volumes[]`                    | `corev1.Volume`               | No       | None                                 | Standard Kubernetes schema                                                                     | Extra volumes beside the home PVC.                                                               |
+| `spec.volumeMounts[]`               | `corev1.VolumeMount`          | No       | None                                 | Standard Kubernetes schema                                                                     | Where those volumes land in the container.                                                       |
+| `spec.storage`                      | `resource.Quantity`           | No       | None                                 | Immutable after first set by CEL rule                                                          | Size of the home PVC. Counted against `UserSpace.spec.quota.storage` at admission.               |
+| `spec.sshAuthorizedKeys[]`          | `string`                      | No       | None                                 | Each key must start with `ssh-`, `ecdsa-sha2-` or `sk-`                                        | OpenSSH public keys accepted by the gateway.                                                     |
+| `spec.running`                      | `boolean`                     | No       | `true`                               | If `true`, the object must have at least one SSH key                                           | Stop and start switch for the `StatefulSet`. No `omitempty` in Go type.                          |
+| `spec.idleTimeout`                  | `metav1.Duration`             | No       | `4h`                                 | None                                                                                           | Present in the API, but auto-stop is not implemented yet.                                        |
+| `spec.observability`                | `WorkspaceObservability`      | No       | None                                 | None                                                                                           | Per-workspace label and annotation toggles.                                                      |
+| `spec.observability.logsEnabled`    | `boolean`                     | No       | `true`                               | None                                                                                           | Writes pod annotation `dwpk.devops-ia.io/logs-enabled`.                                          |
+| `spec.observability.metricsEnabled` | `boolean`                     | No       | `true`                               | None                                                                                           | Writes pod label `dwpk.devops-ia.io/metrics-enabled`.                                            |
+
+Object-level CEL validations on `Workspace.spec`:
+
+- `storage` is immutable once set
+- every `sshAuthorizedKeys` entry is an OpenSSH public key: `ssh-rsa`, `ssh-ed25519`, `ecdsa-sha2-nistp256/384/521`, or an `sk-` security key
+- `running=true` requires at least one SSH key
+
+The validating webhook adds what CEL cannot see, because it needs another object: the name must be unique in the namespace, and the requested resources must fit in what the owner's `UserSpace` quota has left.
+
+### status
+
+| Field                       | Type               | Required | Default | Validation                                              | Notes                                                                         |
+| --------------------------- | ------------------ | -------- | ------- | ------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `status.phase`              | `string`           | No       | None    | `Pending`, `Starting`, `Running`, `Suspended`, `Failed` | Current coarse lifecycle state.                                               |
+| `status.endpoint`           | `string`           | No       | None    | None                                                    | Published as `<workspace-name>@<gateway-host>`.                               |
+| `status.podName`            | `string`           | No       | None    | None                                                    | Current pod name. Usually `<workspace-name>-0`.                               |
+| `status.lastActivityTime`   | `metav1.Time`      | No       | None    | None                                                    | Updated by the gateway on session open and close.                             |
+| `status.observedGeneration` | `integer`          | No       | None    | None                                                    | Generation the status reflects.                                               |
+| `status.conditions[]`       | `metav1.Condition` | No       | None    | Standard Kubernetes schema                              | Includes `Ready`, `Degraded`, and `ImageResolved` in current controller code. |
+
+### admission behavior
+
+On CREATE, the mutating webhook also stamps this annotation:
+
+| Field                                                 | Type     | Set by           | Notes                                                   |
+| ----------------------------------------------------- | -------- | ---------------- | ------------------------------------------------------- |
+| `metadata.annotations["dwpk.devops-ia.io/requester"]` | `string` | Mutating webhook | Authenticated username from `request.userInfo.username` |
+
+### example
+
+```
+apiVersion: dwpk.devops-ia.io/v1alpha1
+kind: Workspace
+metadata:
+  name: dev
+  namespace: dwpk-alice
+spec:
+  imageRef:
+    name: python-3.12
+  resources:
+    requests:
+      cpu: "500m"
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+  storage: 20Gi
+  sshAuthorizedKeys:
+    - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyForSamplesOnly000000000 alice@laptop"
+  running: true
+  idleTimeout: 4h
+  observability:
+    logsEnabled: true
+    metricsEnabled: true
+```
+
+______________________________________________________________________
+
+# REST API
+
+The UI also serves a JSON API at `/api/v1`, so the same operations are available to a script without driving a browser. It is a convenience over the Kubernetes API, never a way around it.
+
+## Authentication
+
+Two ways in, both landing on the same server-side session:
+
+- **Cookie** - `POST /api/v1/login` with `{"username","password"}`. The session id comes back as a `Set-Cookie`; the CSRF token for later writes comes back in a header, and again from `GET /api/v1/session`. Every mutating request must carry it as `X-CSRF-Token`.
+- **Bearer** - `Authorization: Bearer dwpk_…`, using a token from `POST /api/v1/tokens`. No CSRF token is needed, since there is no cookie to ride on.
+
+## Authorization
+
+There is none here. Every call is made against the Kubernetes API with the caller's own forwarded ServiceAccount token, so a person who cannot delete a workspace receives the API server's own 403 - the same message, from the same RBAC rule, as they would see in the browser or in `kubectl`. There is no second implementation to keep in step. See SPEC §8.1.
+
+## Conventions
+
+- Lists come back as `{"items": [...]}`; single objects come back bare.
+- Field names are `snake_case`. Kubernetes objects are returned as they are, so their own fields stay `camelCase`.
+- `PATCH` bodies use optional fields: **an omitted key keeps its current value** rather than resetting it. Sending `{"role":"admin"}` to a disabled account leaves it disabled.
+- Errors are `{"error": "<message>"}` with a matching status code.
+
+## Endpoints
+
+### Session
+
+| Method | Path              | Notes                                           |
+| ------ | ----------------- | ----------------------------------------------- |
+| `POST` | `/api/v1/login`   | Username and password; sets the session cookie  |
+| `GET`  | `/api/v1/session` | Who you are: email, namespace, role, CSRF token |
+| `POST` | `/api/v1/logout`  | Clears the server-side session                  |
+
+### Workspaces
+
+| Method   | Path                                       | Notes                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`    | `/api/v1/workspaces`                       | **Scoped by role**: an administrator lists the cluster, everyone else their own namespace. `?namespace=` narrows the result                                                                                                                                                                                                                                                              |
+| `POST`   | `/api/v1/workspaces`                       | Creates in your own namespace                                                                                                                                                                                                                                                                                                                                                            |
+| `GET`    | `/api/v1/workspaces/{name}`                | `?namespace=` reaches one you can see but do not own                                                                                                                                                                                                                                                                                                                                     |
+| `DELETE` | `/api/v1/workspaces/{name}?delete_volume=` | Deletes the workspace. **The home PVC (`home-{name}-0`) is deleted too by default** - a StatefulSet never removes its own claim, so the API does it explicitly, matching the web UI's delete dialog (also checked by default). Pass `?delete_volume=false` to keep the PVC. If the workspace deletes but the PVC delete fails, the response is `409 Conflict` naming exactly what's left |
+| `POST`   | `/api/v1/workspaces/{name}/start`          | Patches `spec.running`                                                                                                                                                                                                                                                                                                                                                                   |
+| `POST`   | `/api/v1/workspaces/{name}/stop`           | Patches `spec.running`                                                                                                                                                                                                                                                                                                                                                                   |
+
+Resources are not patchable. `spec.resources` and `spec.storage` are set at creation: storage because a PVC cannot shrink, and CPU and memory because changing them replaces the pod, which the stop/start pair does explicitly.
+
+### Catalog
+
+| Method   | Path                                         | Notes                                                                 |
+| -------- | -------------------------------------------- | --------------------------------------------------------------------- |
+| `GET`    | `/api/v1/workspace-images`                   | Only entries you may `use`                                            |
+| `GET`    | `/api/v1/workspace-images/{name}`            |                                                                       |
+| `POST`   | `/api/v1/workspace-images`                   | Administrator only                                                    |
+| `PATCH`  | `/api/v1/workspace-images/{name}`            | Administrator only. Omitted fields keep their current value           |
+| `DELETE` | `/api/v1/workspace-images/{name}`            | Administrator only                                                    |
+| `GET`    | `/api/v1/image-registries`                   | Configured registries                                                 |
+| `GET`    | `/api/v1/image-registries/{name}`            |                                                                       |
+| `POST`   | `/api/v1/image-registries`                   | Administrator only                                                    |
+| `PATCH`  | `/api/v1/image-registries/{name}`            | Administrator only. Omitted fields keep their current value           |
+| `DELETE` | `/api/v1/image-registries/{name}`            | Administrator only. Every WorkspaceImage it synced is deleted too     |
+| `POST`   | `/api/v1/image-registries/{name}/force-sync` | Administrator only. Retriggers a sync outside its configured interval |
+
+Creating, editing and deleting catalog entries and registries over REST needs the same administrator RBAC the web UI's catalog admin screen requires - this is not a second, looser permission model.
+
+### Administration
+
+| Method       | Path                               | Notes                                                                                              |
+| ------------ | ---------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `GET`        | `/api/v1/admin/userspaces`         | Every UserSpace, with its quota and role                                                           |
+| `POST`       | `/api/v1/admin/userspaces`         | Provisions a new UserSpace                                                                         |
+| `PATCH`      | `/api/v1/admin/userspaces/{name}`  | Role and disabled                                                                                  |
+| `DELETE`     | `/api/v1/admin/userspaces/{name}`  | Deletes the UserSpace (not its Kubernetes namespace - the controller's own finalizer handles that) |
+| `GET`        | `/api/v1/admin/quota`              | Usage against limit for every UserSpace                                                            |
+| `PATCH`      | `/api/v1/admin/quota/{name}`       | Updates one UserSpace's quota. Omitted fields keep their current value                             |
+| `GET` `POST` | `/api/v1/admin/local-users`        | Only when local auth is enabled                                                                    |
+| `DELETE`     | `/api/v1/admin/local-users/{name}` |                                                                                                    |
+
+### Profile and tokens
+
+| Method       | Path                       | Notes                                                                                                                                                              |
+| ------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `POST`       | `/api/v1/profile/password` | `{"current_password","new_password"}`. The account comes from your session, never from the body. Local logins only: a session from an identity provider gets `409` |
+| `GET` `POST` | `/api/v1/tokens`           | The plaintext token is returned once, by the issuing call only                                                                                                     |
+| `DELETE`     | `/api/v1/tokens/{name}`    |                                                                                                                                                                    |
+
+### Logs
+
+| Method | Path                             | Notes                                                                                      |
+| ------ | -------------------------------- | ------------------------------------------------------------------------------------------ |
+| `GET`  | `/api/v1/workspaces/{name}/logs` | Tail of the workspace container's logs. `?tail=` bounds line count, default matches the UI |
+
+## Example
+
+```
+# Sign in and keep the cookie.
+curl -sc jar -d '{"username":"alice","password":"..."}' \
+  -H 'Content-Type: application/json' https://dwpk.example.com/api/v1/login
+
+CSRF=$(curl -sb jar https://dwpk.example.com/api/v1/session | jq -r .csrf_token)
+
+# Stop a workspace, then look at what is left.
+curl -sb jar -X POST -H "X-CSRF-Token: $CSRF" \
+  https://dwpk.example.com/api/v1/workspaces/dev/stop
+
+curl -sb jar https://dwpk.example.com/api/v1/workspaces/dev | jq .status
+```
+
+# Environment variables
+
+Every environment variable dwpk actually reads, grepped from the three binaries' own `main.go` files so nothing here is invented. Flags (`--metrics-bind-address`, `--leader-elect`, and so on - see `cmd/manager --help`) are a separate mechanism and are not repeated here; the Helm chart's `values.yaml` maps most of them for you. Where a value corresponds to a Helm value, that mapping is noted.
+
+## `dwpk-ui`
+
+The web UI and REST API. All variables are read once at process start (`cmd/ui/main.go`); nothing here is re-read while the process is running.
+
+| Variable                        | Default                       | Notes                                                                                                                                                                                                |
+| ------------------------------- | ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DWPK__UI_LISTEN_ADDRESS`       | `:8080` (see `DWPK__UI_PORT`) | Full `host:port` bind address. Takes precedence over `DWPK__UI_PORT` when both are set.                                                                                                              |
+| `DWPK__UI_PORT`                 | `8080`                        | Port only, on all interfaces. Ignored if `DWPK__UI_LISTEN_ADDRESS` is set.                                                                                                                           |
+| `DWPK__UI_KUBECONFIG`           | in-cluster config             | Path to a kubeconfig file. Leave unset when running inside the cluster - the Pod's own ServiceAccount is used instead.                                                                               |
+| `DWPK__UI_GATEWAY_HOST`         | `dwpk.example.com`            | Hostname shown in a workspace's SSH endpoint (`<workspace>@<gateway-host>`). Maps to `ui.gatewayHost` in Helm.                                                                                       |
+| `DWPK__UI_BASE_URL`             | none                          | The UI's own externally reachable URL, used to derive `<baseURL>/callback/<provider>` when a provider's own redirect URL is not set, and as the base for password-reset links. Maps to `ui.baseURL`. |
+| `DWPK__UI_BASE_PATH`            | none (root)                   | Path prefix when the UI is served behind a proxy under a non-root path, e.g. `/dwpk`. Maps to `ui.basePath`.                                                                                         |
+| `DWPK__UI_SESSION_TTL`          | `15m`                         | Idle session window, a Go duration (`30m`, `2h`). Maps to `ui.sessionTTL`.                                                                                                                           |
+| `DWPK__UI_COOKIE_SECURE`        | `true`                        | Whether the session cookie is marked `Secure`. Only turn this off for a plain-HTTP local/dev deployment; never in production. Maps to `ui.cookieSecure`.                                             |
+| `DWPK__UI_LOG_LEVEL`            | `info`                        | One of `debug`, `info`, `warn`, `error`. Maps to `ui.logLevel`.                                                                                                                                      |
+| `DWPK__UI_LOCAL_AUTH_ENABLED`   | `false`                       | Turns on username/password login alongside OAuth2 (§7.8). Maps to `ui.localAuth.enabled`.                                                                                                            |
+| `DWPK__UI_LOCAL_AUTH_NAMESPACE` | `dwpk-system`                 | Namespace holding local user Secrets. Maps to `ui.localAuth.namespace`.                                                                                                                              |
+| `DWPK__UI_TOKEN_NAMESPACE`      | `dwpk-system`                 | Namespace holding API bearer token Secrets. Maps to `ui.tokenNamespace`.                                                                                                                             |
+
+### Per-provider OAuth2 variables
+
+Repeat the block below once per provider you enable, replacing `<PROVIDER>` with `ENTRA_ID`, `GOOGLE`, `GITLAB`, `KEYCLOAK` or `GITHUB`. A provider with none of its four required variables set is treated as not configured and is not offered on the login page.
+
+| Variable                                     | Required                         | Notes                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------------------- | -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DWPK__UI_PROVIDER_<PROVIDER>_CLIENT_ID`     | Yes                              | OAuth2/OIDC client ID.                                                                                                                                                                                                                                                                                                  |
+| `DWPK__UI_PROVIDER_<PROVIDER>_CLIENT_SECRET` | Yes                              | OAuth2 client secret. Put this in a Secret, not plaintext values - see `ui.oauth.existingSecret` in `docs/INSTALLATION.md`.                                                                                                                                                                                             |
+| `DWPK__UI_PROVIDER_<PROVIDER>_ISSUER_URL`    | Yes (all except GitHub)          | OIDC discovery issuer. GitHub has no OIDC discovery document and does not use this variable.                                                                                                                                                                                                                            |
+| `DWPK__UI_PROVIDER_<PROVIDER>_REDIRECT_URL`  | No if `DWPK__UI_BASE_URL` is set | Explicit callback URL. Derived as `<baseURL>/callback/<provider>` when omitted.                                                                                                                                                                                                                                         |
+| `DWPK__UI_PROVIDER_<PROVIDER>_ADMIN_GROUPS`  | No                               | Comma-separated group names/object IDs (§7.9). A login whose ID token `groups` claim matches one of these gets the `admin` role for that session, regardless of the UserSpace's own `spec.role`. Unset (with `_USER_GROUPS` also unset) means group mapping is off - `spec.role` alone decides, as before this existed. |
+| `DWPK__UI_PROVIDER_<PROVIDER>_USER_GROUPS`   | No                               | Comma-separated group names/object IDs. A login matching one of these (and none of `_ADMIN_GROUPS`) gets the `user` role for that session.                                                                                                                                                                              |
+
+GitHub has no group claim at all - it maps org/team membership through a separate API instead - so `_ADMIN_GROUPS`/`_USER_GROUPS` have no effect for `DWPK__UI_PROVIDER_GITHUB_*`. See `docs/INSTALLATION.md` for a worked Entra ID example of the group-mapping variables.
+
+Helm maps these from `ui.oauth.<provider>.*` values; see `docs/INSTALLATION.md`'s OAuth2 provider configuration section for the exact key names and the required Secret.
+
+## `dwpk-manager` (the operator)
+
+Controllers, webhooks and the one-shot admin bootstrap Job read these. Most of the manager's configuration is flags, not environment variables - see `cmd/manager --help` or `helm-dwpk/values.yaml`'s `manager.args`. Only the admin bootstrap options are environment variables, since they run inside a Helm post-install hook Job where flags are less convenient to template than Secret-backed env vars.
+
+| Variable                | Default            | Notes                                                                                                                                                                                                                                                                            |
+| ----------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DWPK__ADMIN_USERSPACE` | `admin`            | Name of the UserSpace created for the bootstrap admin.                                                                                                                                                                                                                           |
+| `DWPK__ADMIN_USERNAME`  | `admin`            | Local username for the bootstrap admin login.                                                                                                                                                                                                                                    |
+| `DWPK__ADMIN_EMAIL`     | `admin@dwpk.local` | Owner email recorded on the bootstrap UserSpace.                                                                                                                                                                                                                                 |
+| `DWPK__ADMIN_PASSWORD`  | generated          | Password for the bootstrap admin. Left unset, a random password is generated and written once to a throwaway Secret for you to read and delete - see the Helm install output. Set explicitly only for a scripted/demo environment; never check a real value into source control. |
+
+This bootstrap is idempotent: once the admin UserSpace and local user exist, re-running the Job (a Helm upgrade, for example) does nothing further.
+
+### Manager flags worth knowing
+
+Two flags decide what a user sees as their SSH endpoint, and they interact:
+
+| Flag                | Helm value            | Notes                                                                                                                                                                                                                                                     |
+| ------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--gateway-service` | derived               | The gateway's own Service, as `<namespace>/<name>`. When that Service has a LoadBalancer address, the address is published in `Workspace.status.endpoint`. The chart sets this automatically whenever `gateway.enabled` is true; it is omitted otherwise. |
+| `--gateway-host`    | `manager.gatewayHost` | The fallback hostname, used when `--gateway-service` is unset, names a Service that does not exist, or names one with no LoadBalancer address yet.                                                                                                        |
+
+Resolution order is hostname, then IP, then the fallback. A hostname wins because an internal AWS NLB publishes a hostname and no address, and the hostname keeps working when the address behind it is reassigned.
+
+This exists because a cluster-internal Service DNS name (`dwpk-gateway.dwpk-system.svc.cluster.local`) is not resolvable from the VPN users connect over, so it cannot be pasted into `ssh`.
+
+## `dwpk-gateway`
+
+The SSH gateway takes all of its configuration through command-line flags (`--listen-address`, `--host-key-path`, and the standard `zap` logging flags) rather than environment variables. See `cmd/gateway --help` or `helm-dwpk/values.yaml`'s `gateway.listenAddress`, `gateway.hostKey.path` and `gateway.extraArgs` for the full list.
+
+# Troubleshooting
+
+## Controller is not reconciling
+
+Check the manager first.
+
+```
+kubectl get pods -n dwpk-system
+kubectl logs -n dwpk-system deployment/dwpk-controller-manager
+kubectl get lease -n dwpk-system
+```
+
+Things to verify:
+
+- At least one manager pod is ready.
+- One pod holds the leader election Lease `dwpk-controller.dwpk.devops-ia.io`.
+- The manager can talk to the webhook certificate Secret if webhooks are enabled.
+- `Workspace` and `UserSpace` objects show current `status.conditions` and `status.observedGeneration`.
+
+If you installed Helm into a namespace other than `dwpk-system`, leader election is a likely failure point. `cmd/manager/main.go` hard-codes `dwpk-system` as the leader election namespace.
+
+## Webhook rejects a create or update
+
+Common valid rejections from the current code:
+
+- Referenced `WorkspaceImage` does not exist, or its entry is deprecated and this is a create
+- Requested `spec.resources` (requests or limits) exceed `UserSpace.spec.quota`, workspace count included
+- Namespace already has `UserSpace.spec.quota.workspaces` workspaces
+- `Workspace.spec.storage` changed after create
+- `Workspace.spec.sshAuthorizedKeys` contains an entry that does not start with `ssh-`
+- `Workspace.spec.running=true` without any SSH key
+- `UserSpace.spec.owner` changed after create
+
+Debug steps:
+
+```
+kubectl describe workspace -n <namespace> <name>
+kubectl get validatingwebhookconfiguration,mutatingwebhookconfiguration | grep dwpk
+kubectl get pods -n dwpk-system
+kubectl logs -n dwpk-system deployment/dwpk-controller-manager | grep -i webhook
+```
+
+If cert-manager is not ready, the webhook Service may exist before the serving certificate does.
+
+## Gateway connection refused
+
+Check the network path.
+
+```
+kubectl get deployment,svc -n dwpk-system | grep gateway
+kubectl describe svc -n dwpk-system <gateway-service-name>
+kubectl logs -n dwpk-system deployment/<gateway-deployment-name>
+```
+
+What to look for:
+
+- Gateway Service has an address if you use `LoadBalancer`
+- Service port `22` maps to target port `ssh`
+- Gateway pod container listens on `:2222` by default
+- No image pull or crash loop on gateway pods
+
+If you used the chart defaults without publishing a real gateway image, the pod will fail before it can listen.
+
+## Gateway auth fails
+
+How gateway auth works in code:
+
+- SSH username must equal `Workspace.metadata.name`
+- Offered public key must exactly match one parsed key in `Workspace.spec.sshAuthorizedKeys`
+- The matched workspace must be `status.phase=Running`
+
+Debug steps:
+
+```
+kubectl get workspace -A
+kubectl get workspace -n <namespace> <name> -o yaml
+kubectl logs -n dwpk-system deployment/<gateway-deployment-name>
+```
+
+Two easy mistakes:
+
+- Wrong SSH username. Use the workspace name, not your email.
+- Duplicate workspace names with the same authorized key across namespaces. `ResolveWorkspaceTargetByNameAndPublicKey` rejects ambiguous matches.
+
+## VS Code Remote-SSH fails after SSH login
+
+The gateway supports loopback forwarding through `pods/portforward`, but the image still needs userland tools for VS Code server bootstrap.
+
+Check the image contract:
+
+- shell
+- `curl` or `wget`
+- `tar`
+- `gzip`
+
+If the workspace shell opens but VS Code fails, test those tools inside the pod.
+
+## UI login redirect loop
+
+Check the UI config and cookies.
+
+```
+kubectl logs -n dwpk-system deployment/<ui-deployment-name>
+kubectl describe deployment -n dwpk-system <ui-deployment-name>
+```
+
+Common causes:
+
+- `DWPK__UI_COOKIE_SECURE=true` while you test over plain HTTP
+- Provider configured without `redirectURL` and without `DWPK__UI_BASE_URL`
+- Wrong callback URL registered in the OAuth2 provider
+- No `UserSpace` matches the provider email, so login is denied and the browser is sent back through the login flow
+- Browser blocks the session cookie because the external URL does not match the way you exposed the service
+
+Cookie names to inspect:
+
+- `dwpk_ui_session`
+- `dwpk_ui_login_state`
+- `dwpk_ui_login_next`
+
+## UI catalog or admin page returns 403
+
+Catalog and workspace actions run with a minted token for the `session` ServiceAccount in your namespace (`session-readonly` for a read-scoped API token). A `403` usually means the RBAC for that service account does not allow the request.
+
+Expected cases:
+
+- Normal users can create and manage workspaces only in their own namespace.
+- `/admin/users` and `/admin/quota` are blocked by default.
+- `WorkspaceImage` entries hidden from the catalog often mean `use` permission is missing for that image.
+
+## Logs tab is empty or refuses
+
+`No output yet` is not a fault. It means the container is running and has written nothing to stdout or stderr - common for a workspace whose entrypoint just sleeps. Write something and re-check:
+
+```
+kubectl exec <pod> -n <namespace> -c workspace -- sh -c 'echo hi > /proc/1/fd/1'
+```
+
+`No pod is running` means the workspace is suspended. `status.podName` is empty, and there is nothing to tail. Start it.
+
+`Logs are unavailable` prints the API server's own message underneath. Confirm the grant against the identity the browser actually uses - the per-namespace `session` ServiceAccount, not the human:
+
+```
+kubectl auth can-i get pods/log \
+  --as=system:serviceaccount:<namespace>:session -n <namespace>
+```
+
+`no` here means the per-user ClusterRole is missing its `pods`/`pods/log` rule (`buildOwnerClusterRole` in `internal/controller/userspace_objects.go`). Asking with `--as=<email>` instead will answer `yes` and tell you nothing about the UI.
+
+## Terminal freezes mid-session
+
+If the connection chip still reads `Connected` but nothing echoes, the socket is open and the shell is gone. If it reads `Disconnected`, use the `Reconnect` button rather than reloading the page.
+
+A terminal that used to die every three seconds was a different bug, fixed: the status poll swapped the whole card, terminal included. If it reappears, check that nothing has moved the terminal markup back inside `WorkspaceStatusCard` - `TestPolledFragmentExcludesTheTerminal` guards exactly that.
+
+## Deleted a workspace and the storage is still billed
+
+Expected. Deleting a `Workspace` removes the StatefulSet through its owner reference, but the home PVC comes from a `volumeClaimTemplate` and no `persistentVolumeClaimRetentionPolicy` is set, so Kubernetes keeps it:
+
+```
+kubectl get pvc -n <namespace>          # home-<workspace-name>-0 will still be Bound
+kubectl delete pvc home-<workspace-name>-0 -n <namespace>
+```
+
+The UI's delete confirmation says this before the click. Recreating a workspace of the same name does not reattach the old volume.
+
+## `make test` or envtest setup fails
+
+The Makefile derives envtest versions from `go.mod`.
+
+Relevant lines:
+
+- `ENVTEST_VERSION` comes from the `sigs.k8s.io/controller-runtime` module version
+- `ENVTEST_K8S_VERSION` comes from the `k8s.io/api` module version, then `sed` reduces it to `1.<minor>`
+
+Failure modes called out by the Makefile itself:
+
+- controller-runtime replace with no tag, set `ENVTEST_VERSION` manually
+- `k8s.io/api` replace with no tag, set `ENVTEST_K8S_VERSION` manually
+
+Useful commands:
+
+```
+make setup-envtest
+make test
+```
+
+If `setup-envtest` fails, export the version variables explicitly and rerun.
+
+## Helm install fails
+
+Check these first:
+
+- cert-manager is installed and ready
+- release namespace is `dwpk-system`
+- gateway and UI image repositories and tags point to real images
+- `rbac.namespaced=false` when gateway or UI are enabled
+- no existing CRD ownership conflict from a previous install path
+
+Useful commands:
+
+```
+helm show values oci://ghcr.io/devops-ia/helm-dwpk/dwpk --version <chart-version>
+helm status dwpk -n dwpk-system
+kubectl get events -n dwpk-system --sort-by=.lastTimestamp
+```
+
+If you're iterating on the chart itself rather than installing a release, `helm lint` against a local clone of [devops-ia/helm-dwpk](https://github.com/devops-ia/helm-dwpk) instead.
+
+Specific gotchas from current repo state:
+
+- `make helm-deploy` only sets manager image values. It does not set gateway or UI images.
+- `crd.keep=true` leaves CRDs behind on uninstall, which can confuse a later reinstall.
+- All three images (manager, gateway, UI) are built and published by `.github/workflows/github-release.yml` on every tagged release; a chart install with no image overrides pulls the tag matching the chart's `appVersion`.
+
+## Raw manifest install works, but SSH or UI is missing
+
+That is expected. `dist/install.yaml` comes from `config/default` and installs only the operator stack. Use the Helm chart for the full platform.
+
+## `idleTimeout` does nothing
+
+This is a current implementation gap.
+
+The API has `Workspace.spec.idleTimeout`, and the gateway updates `status.lastActivityTime`, but there is no `IdleReconciler` in the repository. Workspaces do not auto-stop on idle yet.

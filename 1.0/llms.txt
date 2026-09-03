@@ -1,0 +1,26 @@
+# dwpk
+
+> Development Workspace Platform for Kubernetes
+
+dwpk (Development Workspace Platform for Kubernetes) is a self-service platform for persistent developer environments on your own Kubernetes cluster: a catalog of container images, one namespace and quota per person, and access over SSH, VS Code Remote-SSH, or a browser terminal. No external database - state lives in Kubernetes CRDs.
+
+
+## Getting started
+
+- [Home](https://devops-ia.github.io/dwpk/1.0/index.md): What dwpk is, why it exists, and how the three components fit together
+- [Quick Start](https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md): Zero to a running workspace on a local cluster
+
+## Guides
+
+- [Installation](https://devops-ia.github.io/dwpk/1.0/INSTALLATION/index.md): Helm (OCI) and raw-manifest installs, OAuth2 provider setup
+- [Administration](https://devops-ia.github.io/dwpk/1.0/ADMINISTRATION/index.md): Curating the catalog, provisioning users, day-2 operations
+- [User guide](https://devops-ia.github.io/dwpk/1.0/USER_GUIDE/index.md): Using the marketplace UI
+- [Gateway on AWS](https://devops-ia.github.io/dwpk/1.0/GATEWAY_AWS/index.md): Exposing the SSH gateway with the AWS Load Balancer Controller
+
+## Reference
+
+- [Architecture](https://devops-ia.github.io/dwpk/1.0/ARCHITECTURE/index.md): Components, CRDs, reconcile flows, RBAC model
+- [API reference](https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md): CRDs and the REST API
+- [Environment variables](https://devops-ia.github.io/dwpk/1.0/ENVIRONMENT_VARIABLES/index.md): Every environment variable each binary reads
+- [Troubleshooting](https://devops-ia.github.io/dwpk/1.0/TROUBLESHOOTING/index.md): Common failures and fixes
+

@@ -25,6 +25,10 @@ jobs:
   deploy:
     name: Refresh latest
     runs-on: ubuntu-latest
+    # Shared with github-release.yml's docs job: both push gh-pages, and racing makes the second push fail.
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:

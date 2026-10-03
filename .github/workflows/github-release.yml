@@ -229,6 +229,10 @@ jobs:
     needs: version
     if: needs.version.outputs.published == 'true'
     runs-on: ubuntu-latest
+    # Shared with github-pages.yml: both push gh-pages, and racing makes the second push fail.
+    concurrency:
+      group: gh-pages
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:

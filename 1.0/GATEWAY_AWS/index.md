@@ -12,10 +12,10 @@ The gateway needs a **Network Load Balancer**, which is layer 4 and forwards TCP
 
 The split for a dwpk install is:
 
-| Component | Protocol     | Load balancer | Kubernetes object             |
-| --------- | ------------ | ------------- | ----------------------------- |
-| Gateway   | SSH (TCP/22) | **NLB**       | `Service` type `LoadBalancer` |
-| UI        | HTTPS        | **ALB**       | `Ingress`                     |
+| Component | Protocol | Load balancer | Kubernetes object |
+| --- | --- | --- | --- |
+| Gateway | SSH (TCP/22) | **NLB** | `Service` type `LoadBalancer` |
+| UI | HTTPS | **ALB** | `Ingress` |
 
 ## The gateway Service
 

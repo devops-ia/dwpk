@@ -58,9 +58,9 @@ Four CRDs define the product surface:
 Relationship chain:
 
 1. A `WorkspaceImage` publishes the runtime image, placement rules, working directory, and UID. It does not publish sizes: resources are chosen per workspace. It optionally names an `imagePullSecretRef` for a private image.
-1. A `UserSpace` provisions `dwpk-<name>` and binds the owner, plus the `session` and `workspace` ServiceAccounts, to namespace-scoped access. It also mirrors every labelled pull Secret from the manager's namespace into its own, so a private catalog image can actually be pulled there.
-1. A `Workspace` in that namespace references one `WorkspaceImage` by name and turns into a headless `Service`, a single-pod `StatefulSet`, and a retained home PVC.
-1. An `ImageRegistry` polls its configured registry on an interval, applies include/exclude and tag selection, and owns the `WorkspaceImage` objects it creates (labelled by registry name, so a prune pass and a second registry never collide).
+2. A `UserSpace` provisions `dwpk-<name>` and binds the owner, plus the `session` and `workspace` ServiceAccounts, to namespace-scoped access. It also mirrors every labelled pull Secret from the manager's namespace into its own, so a private catalog image can actually be pulled there.
+3. A `Workspace` in that namespace references one `WorkspaceImage` by name and turns into a headless `Service`, a single-pod `StatefulSet`, and a retained home PVC.
+4. An `ImageRegistry` polls its configured registry on an interval, applies include/exclude and tag selection, and owns the `WorkspaceImage` objects it creates (labelled by registry name, so a prune pass and a second registry never collide).
 
 ## Manager
 
@@ -84,7 +84,7 @@ Three ServiceAccounts, not one, because a browser session and a workspace contai
 
 - `workspace` is the identity the workspace pod itself runs as. The `dwpk-workspace-edit` RoleBinding grants it the built-in `edit` ClusterRole, scoped to that namespace only - this is what makes `kubectl` work from inside a session against the user's own namespace.
 - `session` is the identity the UI mints a token for on every authenticated request (`TokenScopeFull`). It is bound into `dwpk-owner` alongside the human's own OIDC `User` subject, so a browser session gets exactly the same namespaced rights as the owner: full CRUD on `Workspace`, pod/log/event reads, and the `pods/exec` grant the browser terminal needs.
-- `session-readonly` backs read-scoped API tokens (`TokenScopeRead`, see [API reference](https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md)). It is bound into `dwpk-reader`, the same shape as `dwpk-owner` minus every write verb. Kubernetes cannot narrow a `TokenRequest` below the ServiceAccount's own rights, so a read-only token has to mint for a ServiceAccount that only ever had read rights to begin with.
+- `session-readonly` backs read-scoped API tokens (`TokenScopeRead`, see [API reference](<https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md>)). It is bound into `dwpk-reader`, the same shape as `dwpk-owner` minus every write verb. Kubernetes cannot narrow a `TokenRequest` below the ServiceAccount's own rights, so a read-only token has to mint for a ServiceAccount that only ever had read rights to begin with.
 
 The ClusterRole exists because `UserSpace` and `WorkspaceImage` are cluster scoped. It grants:
 
@@ -102,10 +102,10 @@ The reconciler also resolves the Kubernetes API server address from the `kuberne
 Flow:
 
 1. Fetch the referenced `WorkspaceImage`.
-1. Fail with `status.phase=Pending` and `ImageResolved=False` if the image does not exist.
-1. Fail if `spec.storage` is still unset, which means the CRD default did not apply.
-1. Apply a headless `Service` first, then a `StatefulSet`.
-1. Reflect observed state into `status.phase`, `status.endpoint`, `status.podName`, `status.observedGeneration`, and `status.conditions`.
+2. Fail with `status.phase=Pending` and `ImageResolved=False` if the image does not exist.
+3. Fail if `spec.storage` is still unset, which means the CRD default did not apply.
+4. Apply a headless `Service` first, then a `StatefulSet`.
+5. Reflect observed state into `status.phase`, `status.endpoint`, `status.podName`, `status.observedGeneration`, and `status.conditions`.
 
 The controller uses a `StatefulSet`, not a `Deployment` or a bare `Pod`, because the `StatefulSet` gives stable pod naming, suspend and resume through `replicas`, and PVC retention across restarts.
 
@@ -142,16 +142,16 @@ The gateway is a separate stateless server. It does not use leader election.
 Connection flow in `internal/gateway/server.go`:
 
 1. Accept SSH on the configured listen address.
-1. List `Workspace` objects.
-1. Match the SSH username to `Workspace.metadata.name`.
-1. Parse each `spec.sshAuthorizedKeys` entry and compare the offered public key.
-1. Store the resolved namespace and workspace name in SSH permissions.
-1. Re-fetch the `Workspace` and reject the session if it is not `Running`.
-1. Resolve the pod from `status.podName` or `<workspace-name>-0`.
-1. Reject the target if the pod does not carry `dwpk.devops-ia.io/workspace=<workspace-name>`.
-1. Open `pods/exec` for shell and exec channels.
-1. Open `pods/portforward` when SSH `direct-tcpip` targets `localhost`, `127.0.0.1`, or `::1`.
-1. Patch `status.lastActivityTime` on session open and close.
+2. List `Workspace` objects.
+3. Match the SSH username to `Workspace.metadata.name`.
+4. Parse each `spec.sshAuthorizedKeys` entry and compare the offered public key.
+5. Store the resolved namespace and workspace name in SSH permissions.
+6. Re-fetch the `Workspace` and reject the session if it is not `Running`.
+7. Resolve the pod from `status.podName` or `<workspace-name>-0`.
+8. Reject the target if the pod does not carry `dwpk.devops-ia.io/workspace=<workspace-name>`.
+9. Open `pods/exec` for shell and exec channels.
+10. Open `pods/portforward` when SSH `direct-tcpip` targets `localhost`, `127.0.0.1`, or `::1`.
+11. Patch `status.lastActivityTime` on session open and close.
 
 Why `pods/portforward` matters: VS Code Remote-SSH opens loopback listeners inside the pod. The gateway uses `pods/portforward` for `direct-tcpip` so those listeners stay reachable.
 
@@ -223,14 +223,14 @@ The provider registry supports these names:
 Per login:
 
 1. User picks a provider at `/login`.
-1. UI creates a short-lived login challenge with state and nonce.
-1. Provider returns an authorization code to `/callback/{provider}`.
-1. UI exchanges the code for tokens.
-1. UI reads a verified email from the provider response.
-1. UI resolves a `UserSpace` whose `spec.owner` equals that email.
-1. UI creates a server-side session and stores only an opaque session ID in the browser cookie.
-1. For each authenticated request, UI mints a short-lived token for the `session` ServiceAccount in the user's namespace by calling the Kubernetes `TokenRequest` API (`session-readonly` instead, for a read-scoped API token - see [API reference](https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md)).
-1. UI forwards Kubernetes requests with that minted token.
+2. UI creates a short-lived login challenge with state and nonce.
+3. Provider returns an authorization code to `/callback/{provider}`.
+4. UI exchanges the code for tokens.
+5. UI reads a verified email from the provider response.
+6. UI resolves a `UserSpace` whose `spec.owner` equals that email.
+7. UI creates a server-side session and stores only an opaque session ID in the browser cookie.
+8. For each authenticated request, UI mints a short-lived token for the `session` ServiceAccount in the user's namespace by calling the Kubernetes `TokenRequest` API (`session-readonly` instead, for a read-scoped API token - see [API reference](<https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md>)).
+9. UI forwards Kubernetes requests with that minted token.
 
 This matters for security. The UI does not keep standing Kubernetes write access for user actions. Authorization still comes from the `session` ServiceAccount's own RBAC in the target namespace - a separate identity from the `workspace` ServiceAccount the pod itself runs as, so a shell inside a workspace never inherits whatever rights an administrator's own browser session carries.
 

@@ -5,7 +5,7 @@
 Two install paths exist:
 
 - `dist/install.yaml`, a raw `kubectl apply` bundle you build yourself with `make build-installer`
-- the Helm chart, published as an OCI artifact at `oci://ghcr.io/devops-ia/helm-dwpk/dwpk` from the separate [devops-ia/helm-dwpk](https://github.com/devops-ia/helm-dwpk) repository
+- the Helm chart, published as an OCI artifact at `oci://ghcr.io/devops-ia/helm-dwpk/dwpk` from the separate [devops-ia/helm-dwpk](<https://github.com/devops-ia/helm-dwpk>) repository
 
 They are not equivalent.
 
@@ -37,7 +37,7 @@ Use a current Kubernetes release that supports those APIs.
 - An ingress controller if you want the UI exposed through `ui.ingress.enabled=true`, or a Gateway API implementation (with its CRDs installed) if you want `ui.gateway.enabled=true` instead.
 - A load balancer implementation if you want the gateway `Service` of type `LoadBalancer` to get an external address.
 
-[Quick start](https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md) installs cert-manager like this:
+[Quick start](<https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md>) installs cert-manager like this:
 
 ```
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.21.1/cert-manager.yaml
@@ -64,13 +64,13 @@ The UI reads provider settings from environment variables. The Helm chart maps t
 
 Supported providers:
 
-| Provider | Required values                                                                           | Optional value when `ui.baseURL` is set | Callback path        |
-| -------- | ----------------------------------------------------------------------------------------- | --------------------------------------- | -------------------- |
-| Entra ID | `ui.oauth.entraID.clientID`, `ui.oauth.entraID.issuerURL`, secret key for client secret   | `ui.oauth.entraID.redirectURL`          | `/callback/entra-id` |
-| Google   | `ui.oauth.google.clientID`, `ui.oauth.google.issuerURL`, secret key for client secret     | `ui.oauth.google.redirectURL`           | `/callback/google`   |
-| GitLab   | `ui.oauth.gitLab.clientID`, `ui.oauth.gitLab.issuerURL`, secret key for client secret     | `ui.oauth.gitLab.redirectURL`           | `/callback/gitlab`   |
-| Keycloak | `ui.oauth.keycloak.clientID`, `ui.oauth.keycloak.issuerURL`, secret key for client secret | `ui.oauth.keycloak.redirectURL`         | `/callback/keycloak` |
-| GitHub   | `ui.oauth.gitHub.clientID`, secret key for client secret                                  | `ui.oauth.gitHub.redirectURL`           | `/callback/github`   |
+| Provider | Required values | Optional value when `ui.baseURL` is set | Callback path |
+| --- | --- | --- | --- |
+| Entra ID | `ui.oauth.entraID.clientID`, `ui.oauth.entraID.issuerURL`, secret key for client secret | `ui.oauth.entraID.redirectURL` | `/callback/entra-id` |
+| Google | `ui.oauth.google.clientID`, `ui.oauth.google.issuerURL`, secret key for client secret | `ui.oauth.google.redirectURL` | `/callback/google` |
+| GitLab | `ui.oauth.gitLab.clientID`, `ui.oauth.gitLab.issuerURL`, secret key for client secret | `ui.oauth.gitLab.redirectURL` | `/callback/gitlab` |
+| Keycloak | `ui.oauth.keycloak.clientID`, `ui.oauth.keycloak.issuerURL`, secret key for client secret | `ui.oauth.keycloak.redirectURL` | `/callback/keycloak` |
+| GitHub | `ui.oauth.gitHub.clientID`, secret key for client secret | `ui.oauth.gitHub.redirectURL` | `/callback/github` |
 
 Every variable is prefixed `DWPK__`, a double underscore, followed by the component and the setting.
 
@@ -131,8 +131,8 @@ Each provider needs an app registration pointing at `<baseURL>/callback/<provide
 #### Entra ID
 
 1. Azure Portal → **Microsoft Entra ID → App registrations → New registration**. Add a **Web** redirect URI: `https://dwpk.example.com/callback/entra-id`.
-1. Under **Certificates & secrets**, create a client secret.
-1. The issuer URL is `https://login.microsoftonline.com/<tenant-id>/v2.0`.
+2. Under **Certificates &amp; secrets**, create a client secret.
+3. The issuer URL is `https://login.microsoftonline.com/<tenant-id>/v2.0`.
 
 ```
 helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
@@ -144,13 +144,13 @@ helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
   --set ui.oauth.entraID.issuerURL=https://login.microsoftonline.com/<tenant-id>/v2.0
 ```
 
-See [Mapping OAuth2 groups](#mapping-oauth2-groups-to-adminuser-roles) below for a worked example of Entra ID's admin/user group claim.
+See [Mapping OAuth2 groups](<#mapping-oauth2-groups-to-adminuser-roles>) below for a worked example of Entra ID's admin/user group claim.
 
 #### Google
 
-1. [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services → Credentials → Create Credentials → OAuth client ID**, application type **Web application**.
-1. Add an authorized redirect URI: `https://dwpk.example.com/callback/google`.
-1. The issuer URL is `https://accounts.google.com`.
+1. [Google Cloud Console](<https://console.cloud.google.com/>) → **APIs &amp; Services → Credentials → Create Credentials → OAuth client ID**, application type **Web application**.
+2. Add an authorized redirect URI: `https://dwpk.example.com/callback/google`.
+3. The issuer URL is `https://accounts.google.com`.
 
 ```
 helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
@@ -167,7 +167,7 @@ Google's ID token has no `groups` claim, so `_ADMIN_GROUPS`/`_USER_GROUPS` have 
 #### GitLab
 
 1. GitLab → **User Settings → Applications** (or a group/instance-level application if you want every member of that group to be able to log in). Redirect URI: `https://dwpk.example.com/callback/gitlab`. Scopes: `openid`, `email`, `profile`.
-1. The issuer URL is `https://gitlab.com` for GitLab.com, or your self-managed instance's own URL.
+2. The issuer URL is `https://gitlab.com` for GitLab.com, or your self-managed instance's own URL.
 
 ```
 helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
@@ -184,7 +184,7 @@ GitLab can carry a `groups` claim (full paths, e.g. `my-group/my-subgroup`) - se
 #### Keycloak
 
 1. Keycloak admin console → your realm → **Clients → Create client**, client type **OpenID Connect**, **Client authentication** on (confidential client). Redirect URI: `https://dwpk.example.com/callback/keycloak`.
-1. The issuer URL is `https://<keycloak-host>/realms/<realm>`.
+2. The issuer URL is `https://<keycloak-host>/realms/<realm>`.
 
 ```
 helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
@@ -201,7 +201,7 @@ Keycloak needs a client scope mapper that adds a `groups` claim to the ID token 
 #### GitHub
 
 1. GitHub → **Settings → Developer settings → OAuth Apps → New OAuth App**. Authorization callback URL: `https://dwpk.example.com/callback/github`.
-1. GitHub has no OIDC discovery document, so there is no issuer URL to set - the UI talks to GitHub's OAuth2 and REST endpoints directly.
+2. GitHub has no OIDC discovery document, so there is no issuer URL to set - the UI talks to GitHub's OAuth2 and REST endpoints directly.
 
 ```
 helm upgrade --install dwpk oci://ghcr.io/devops-ia/helm-dwpk/dwpk \
@@ -228,16 +228,16 @@ Two more environment variables per provider, comma-separated group names/object 
 Neither variable set (the default) means group mapping is off entirely - `spec.role` alone decides, exactly as before this existed. When either is set, every login through that provider is checked in this order:
 
 1. A group in `ADMIN_GROUPS` → session role is `admin`, no matter what `spec.role` says.
-1. Else a group in `USER_GROUPS` → session role is `user`.
-1. Else neither list matches → `spec.role` (or its default, `user`) is used unchanged.
+2. Else a group in `USER_GROUPS` → session role is `user`.
+3. Else neither list matches → `spec.role` (or its default, `user`) is used unchanged.
 
 This mapping only ever adds admin access through a group; it never takes admin access away from a UserSpace an administrator already flagged `spec.role: admin` directly. To force a role regardless of group membership, leave both variables unset for that provider and manage `spec.role` by hand instead.
 
 #### Worked example: Microsoft Entra ID
 
 1. In the Entra ID app registration used for `DWPK__UI_PROVIDER_ENTRA_ID_*`, open **Token configuration** and add a **groups claim** (`GroupMembershipClaims`) to the ID token - either "Security groups" or, for larger tenants, "Groups assigned to the application" so the claim stays under Entra ID's per-token group limit.
-1. In **Enterprise applications → (your app) → Users and groups**, note the **Object ID** of the group you want to grant admin access, and the Object ID of the group you want to grant ordinary user access (these can be the same group's parent/child structure, or two unrelated groups).
-1. Set the two variables using those Object IDs:
+2. In **Enterprise applications → (your app) → Users and groups**, note the **Object ID** of the group you want to grant admin access, and the Object ID of the group you want to grant ordinary user access (these can be the same group's parent/child structure, or two unrelated groups).
+3. Set the two variables using those Object IDs:
 
 ```
 DWPK__UI_PROVIDER_ENTRA_ID_ADMIN_GROUPS=11111111-2222-3333-4444-555555555555
@@ -287,7 +287,7 @@ What it does not install:
 
 ## Install full platform with Helm
 
-Use the chart published at `oci://ghcr.io/devops-ia/helm-dwpk/dwpk` for the full stack. Pick a chart version from the [helm-dwpk releases](https://github.com/devops-ia/helm-dwpk/releases) - the chart version tracks its own release cadence, separate from `dwpk`'s own tags.
+Use the chart published at `oci://ghcr.io/devops-ia/helm-dwpk/dwpk` for the full stack. Pick a chart version from the [helm-dwpk releases](<https://github.com/devops-ia/helm-dwpk/releases>) - the chart version tracks its own release cadence, separate from `dwpk`'s own tags.
 
 ### Values that matter first
 
@@ -349,7 +349,7 @@ The gateway presents one SSH host key to every client, generated on first instal
 Two mutually independent ways to expose the UI `Service` externally, enable one or the other (or neither, if you only need cluster-internal access):
 
 - `ui.ingress.*` - a classic `networking.k8s.io/v1` `Ingress`.
-- `ui.gateway.*` - the [Kubernetes Gateway API](https://kubernetes.io/docs/concepts/services-networking/gateway/) (`gateway.networking.k8s.io/v1` `Gateway` + `HTTPRoute`). Requires the Gateway API CRDs and a controller implementing them (nginx-gateway-fabric, Envoy Gateway, Cilium, Istio, etc.) already installed in the cluster.
+- `ui.gateway.*` - the [Kubernetes Gateway API](<https://kubernetes.io/docs/concepts/services-networking/gateway/>) (`gateway.networking.k8s.io/v1` `Gateway` + `HTTPRoute`). Requires the Gateway API CRDs and a controller implementing them (nginx-gateway-fabric, Envoy Gateway, Cilium, Istio, etc.) already installed in the cluster.
 
 With `ui.gateway.create=true` (default when `ui.gateway.enabled=true`), the chart creates its own `Gateway` object using `ui.gateway.listeners`, and the `HTTPRoute` attaches to it:
 
@@ -429,11 +429,11 @@ Once the UI is exposed, `/api/docs` serves the interactive API reference (Swagge
 ### Functional checks
 
 1. Create at least one `WorkspaceImage` and one `UserSpace`.
-1. Open the UI `/login` page.
-1. Complete login with a provider that maps to the `UserSpace.spec.owner` email.
-1. Confirm the catalog loads.
-1. Create a `Workspace` and wait for `status.phase=Running`.
-1. Confirm `status.endpoint` contains `<workspace-name>@<gateway-host>`.
+2. Open the UI `/login` page.
+3. Complete login with a provider that maps to the `UserSpace.spec.owner` email.
+4. Confirm the catalog loads.
+5. Create a `Workspace` and wait for `status.phase=Running`.
+6. Confirm `status.endpoint` contains `<workspace-name>@<gateway-host>`.
 
 ## Upgrade
 

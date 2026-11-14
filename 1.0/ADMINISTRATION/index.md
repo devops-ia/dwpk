@@ -114,10 +114,10 @@ That ClusterRole is narrow by design. It grants `get`, `watch`, and `patch` on o
 
 `UserSpace.spec.role` takes two values:
 
-| Role             | Reach                                        |
-| ---------------- | -------------------------------------------- |
+| Role | Reach |
+| --- | --- |
 | `user` (default) | Their own workspaces, in their own namespace |
-| `admin`          | The whole platform                           |
+| `admin` | The whole platform |
 
 An `admin` is granted the platform admin ClusterRoles by the `UserSpace` reconciler, as ClusterRoleBindings against their session ServiceAccount. Demoting them removes those bindings - garbage collection alone would not, since it only fires when the `UserSpace` itself is deleted.
 
@@ -274,9 +274,9 @@ What to back up:
 What recovery looks like:
 
 1. Restore the control plane components.
-1. Restore CRDs.
-1. Restore `WorkspaceImage` and `UserSpace` objects.
-1. Restore user namespaces and PVCs.
-1. Restore `Workspace` objects.
+2. Restore CRDs.
+3. Restore `WorkspaceImage` and `UserSpace` objects.
+4. Restore user namespaces and PVCs.
+5. Restore `Workspace` objects.
 
 Because home PVCs outlive the `Workspace`, storage recovery depends on preserving the namespace and the PVC. dwpk does not have its own backup controller.

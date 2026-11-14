@@ -205,7 +205,7 @@ helm status dwpk -n dwpk-system
 kubectl get events -n dwpk-system --sort-by=.lastTimestamp
 ```
 
-If you're iterating on the chart itself rather than installing a release, `helm lint` against a local clone of [devops-ia/helm-dwpk](https://github.com/devops-ia/helm-dwpk) instead.
+If you're iterating on the chart itself rather than installing a release, `helm lint` against a local clone of [devops-ia/helm-dwpk](<https://github.com/devops-ia/helm-dwpk>) instead.
 
 Specific gotchas from current repo state:
 

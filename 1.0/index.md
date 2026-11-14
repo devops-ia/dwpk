@@ -26,7 +26,7 @@ go run ./cmd/manager & go run ./cmd/gateway   # run locally against that kubecon
 kubectl apply -k config/samples/              # a sample catalog entry, user, and workspace
 ```
 
-The full walkthrough, including the cert-manager prerequisite and connecting over SSH, is in [Quick start](https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md). For a real deployment, see [Installation](https://devops-ia.github.io/dwpk/1.0/INSTALLATION/index.md).
+The full walkthrough, including the cert-manager prerequisite and connecting over SSH, is in [Quick start](<https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md>). For a real deployment, see [Installation](<https://devops-ia.github.io/dwpk/1.0/INSTALLATION/index.md>).
 
 ## How it works
 
@@ -70,7 +70,7 @@ Developer browser / VS Code / ssh client
 - **`cmd/gateway`** is a stateless SSH gateway. It authenticates an incoming public key against the `Workspace` that trusts it, then bridges the session in over `pods/exec` and `pods/portforward` - the workspace image itself never runs `sshd`.
 - **`cmd/ui`** is the marketplace web UI: Go, `templ`, and htmx, no SPA and no JS build step.
 
-Full detail, including the RBAC model and the controller reconcile flows, is in [Architecture](https://devops-ia.github.io/dwpk/1.0/ARCHITECTURE/index.md).
+Full detail, including the RBAC model and the controller reconcile flows, is in [Architecture](<https://devops-ia.github.io/dwpk/1.0/ARCHITECTURE/index.md>).
 
 ## Features
 
@@ -85,14 +85,14 @@ Full detail, including the RBAC model and the controller reconcile flows, is in 
 
 ## Documentation map
 
-- [Quick start](https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md) - zero to a running workspace
-- [Architecture](https://devops-ia.github.io/dwpk/1.0/ARCHITECTURE/index.md) - components, CRDs, reconcile flows, RBAC model
-- [Gateway on AWS](https://devops-ia.github.io/dwpk/1.0/GATEWAY_AWS/index.md) - exposing SSH with the AWS Load Balancer Controller (NLB, not ALB)
-- [Installation](https://devops-ia.github.io/dwpk/1.0/INSTALLATION/index.md) - Helm (OCI) and raw-manifest installs, OAuth2 provider setup
-- [Administration](https://devops-ia.github.io/dwpk/1.0/ADMINISTRATION/index.md) - curating the catalog, provisioning users, day-2 operations
-- [User guide](https://devops-ia.github.io/dwpk/1.0/USER_GUIDE/index.md) - using the marketplace UI
-- [API reference](https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md) - CRDs and the REST API
-- [Environment variables](https://devops-ia.github.io/dwpk/1.0/ENVIRONMENT_VARIABLES/index.md) - every variable each binary reads
-- [Troubleshooting](https://devops-ia.github.io/dwpk/1.0/TROUBLESHOOTING/index.md) - common failures and fixes
+- [Quick start](<https://devops-ia.github.io/dwpk/1.0/QUICKSTART/index.md>) - zero to a running workspace
+- [Architecture](<https://devops-ia.github.io/dwpk/1.0/ARCHITECTURE/index.md>) - components, CRDs, reconcile flows, RBAC model
+- [Gateway on AWS](<https://devops-ia.github.io/dwpk/1.0/GATEWAY_AWS/index.md>) - exposing SSH with the AWS Load Balancer Controller (NLB, not ALB)
+- [Installation](<https://devops-ia.github.io/dwpk/1.0/INSTALLATION/index.md>) - Helm (OCI) and raw-manifest installs, OAuth2 provider setup
+- [Administration](<https://devops-ia.github.io/dwpk/1.0/ADMINISTRATION/index.md>) - curating the catalog, provisioning users, day-2 operations
+- [User guide](<https://devops-ia.github.io/dwpk/1.0/USER_GUIDE/index.md>) - using the marketplace UI
+- [API reference](<https://devops-ia.github.io/dwpk/1.0/API_REFERENCE/index.md>) - CRDs and the REST API
+- [Environment variables](<https://devops-ia.github.io/dwpk/1.0/ENVIRONMENT_VARIABLES/index.md>) - every variable each binary reads
+- [Troubleshooting](<https://devops-ia.github.io/dwpk/1.0/TROUBLESHOOTING/index.md>) - common failures and fixes
 
-Development notes (building, testing, local dev loop) stay in the root [README](https://github.com/devops-ia/dwpk/blob/main/README.md); this docs set does not duplicate that.
+Development notes (building, testing, local dev loop) stay in the root [README](<https://github.com/devops-ia/dwpk/blob/main/README.md>); this docs set does not duplicate that.

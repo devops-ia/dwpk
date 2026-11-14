@@ -17,9 +17,9 @@ Open the UI `/login` page. Current provider buttons in the code:
 Flow:
 
 1. Pick your provider.
-1. Complete the provider login.
-1. Return to dwpk.
-1. Land on the catalog page if your email matches an existing `UserSpace`.
+2. Complete the provider login.
+3. Return to dwpk.
+4. Land on the catalog page if your email matches an existing `UserSpace`.
 
 The UI session cookie is separate from your workspace lifecycle. Logging out does not stop a running workspace.
 

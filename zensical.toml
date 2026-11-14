@@ -1,0 +1,83 @@
+[project]
+site_name = "dwpk"
+site_description = "Development Workspace Platform for Kubernetes"
+site_url = "https://devops-ia.github.io/dwpk/"
+repo_name = "devops-ia/dwpk"
+repo_url = "https://github.com/devops-ia/dwpk"
+edit_uri = "edit/main/docs/"
+docs_dir = "docs"
+
+nav = [
+  { "Home" = "README.md" },
+  { "Quick Start" = "QUICKSTART.md" },
+  { "Architecture" = "ARCHITECTURE.md" },
+  { "Installation" = "INSTALLATION.md" },
+  { "Administration" = "ADMINISTRATION.md" },
+  { "User guide" = "USER_GUIDE.md" },
+  { "Gateway on AWS" = "GATEWAY_AWS.md" },
+  { "API reference" = "API_REFERENCE.md" },
+  { "Environment variables" = "ENVIRONMENT_VARIABLES.md" },
+  { "Troubleshooting" = "TROUBLESHOOTING.md" },
+]
+
+[project.extra.version]
+provider = "mike"
+
+[project.theme]
+# classic keeps the Material for MkDocs look; the default "modern" variant changes it.
+variant = "classic"
+features = [
+  "navigation.sections",
+  "navigation.expand",
+  "navigation.top",
+  "navigation.indexes",
+  "toc.follow",
+  "content.code.copy",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "indigo"
+toggle.icon = "material/weather-night"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "indigo"
+toggle.icon = "material/weather-sunny"
+toggle.name = "Switch to light mode"
+
+[project.plugins.llmstxt]
+markdown_description = """
+dwpk (Development Workspace Platform for Kubernetes) is a self-service platform for \
+persistent developer environments on your own Kubernetes cluster: a catalog of container \
+images, one namespace and quota per person, and access over SSH, VS Code Remote-SSH, or a \
+browser terminal. No external database - state lives in Kubernetes CRDs.
+"""
+full_output = "llms-full.txt"
+
+[project.plugins.llmstxt.sections]
+"Getting started" = [
+  { "README.md" = "What dwpk is, why it exists, and how the three components fit together" },
+  { "QUICKSTART.md" = "Zero to a running workspace on a local cluster" },
+]
+"Guides" = [
+  { "INSTALLATION.md" = "Helm (OCI) and raw-manifest installs, OAuth2 provider setup" },
+  { "ADMINISTRATION.md" = "Curating the catalog, provisioning users, day-2 operations" },
+  { "USER_GUIDE.md" = "Using the marketplace UI" },
+  { "GATEWAY_AWS.md" = "Exposing the SSH gateway with the AWS Load Balancer Controller" },
+]
+"Reference" = [
+  { "ARCHITECTURE.md" = "Components, CRDs, reconcile flows, RBAC model" },
+  { "API_REFERENCE.md" = "CRDs and the REST API" },
+  { "ENVIRONMENT_VARIABLES.md" = "Every environment variable each binary reads" },
+  { "TROUBLESHOOTING.md" = "Common failures and fixes" },
+]
+
+[project.markdown_extensions]
+admonition = {}
+pymdownx.superfences = {}
+pymdownx.tabbed.alternate_style = true
+toc.permalink = true

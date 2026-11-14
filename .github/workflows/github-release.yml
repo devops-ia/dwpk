@@ -247,8 +247,8 @@ jobs:
         with:
           python-version: "3"
 
-      - name: Install mkdocs-material and mike
-        run: pip install mkdocs-material mike mkdocs-llmstxt
+      - name: Install Zensical and the mike fork
+        run: pip install zensical git+https://github.com/squidfunk/mike.git@2d4ad799442f4592db8ad53b179bfb33db8c69ac
 
       # mike's version identifier is major.minor, not the full patch version:
       # a patch release (1.4.0 -> 1.4.1) redeploys the same "1.4" entry in

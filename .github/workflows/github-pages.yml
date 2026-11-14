@@ -7,14 +7,14 @@ name: Pages
 # instead, not here.
 #
 # Requires Settings -> Pages -> Source = "Deploy from a branch: gh-pages",
-# since mike (the mkdocs-material version switcher) owns that branch itself.
+# since mike (the docs version switcher) owns that branch itself.
 on:
   push:
     branches:
       - main
     paths:
       - docs/**
-      - mkdocs.yml
+      - zensical.toml
       - README.md
       - .github/workflows/github-pages.yml
   workflow_dispatch: {}
@@ -42,8 +42,8 @@ jobs:
         with:
           python-version: "3"
 
-      - name: Install mkdocs-material and mike
-        run: pip install mkdocs-material mike mkdocs-llmstxt
+      - name: Install Zensical and the mike fork
+        run: pip install zensical git+https://github.com/squidfunk/mike.git@2d4ad799442f4592db8ad53b179bfb33db8c69ac
 
       - name: Resolve the version "latest" currently points to
         id: resolve

@@ -62,7 +62,7 @@ SPEC.md
 # artifact in the repository means it is stale the moment anything changes.
 /dist/
 
-# mkdocs local build output and Python toolchain artifacts
+# zensical local build output and Python toolchain artifacts
 /site/
 __pycache__/
 *.pyc
